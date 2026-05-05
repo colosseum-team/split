@@ -1,0 +1,20 @@
+{
+  "name": "split-esсrow",
+  "private": true,
+  "description": "Solana-based escrow platform for freelancers",
+  "workspaces": [
+    "frontend",
+    "backend",
+    "contracts"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "dev": "npm run dev --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "frontend": "npm run dev -w frontend",
+    "backend": "npm run dev -w backend",
+    "contracts": "npm run dev -w contracts",
+    "install-all": "npm install"
+  }
+}
