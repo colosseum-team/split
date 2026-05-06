@@ -1,8 +1,13 @@
+import { Navbar } from "./_landing/Navbar";
+import { Hero } from "./_landing/Hero";
+
 export default function LandingPage() {
   return (
-    <main>
-      <h1>Split</h1>
-      <p>Trustless freelance contracts on Solana.</p>
-    </main>
+    <>
+      <Navbar />
+      <main>
+        <Hero />
+      </main>
+    </>
   );
 }
