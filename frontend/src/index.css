@@ -1,1 +1,369 @@
 @import 'tailwindcss';
+
+@font-face {
+  font-family: 'SF Pro Text';
+  src:
+    url('/assets/fonts/SFProText-Regular.woff2') format('woff2'),
+    url('/assets/fonts/SFProText-Regular.woff') format('woff'),
+    url('/assets/fonts/SFProText-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SF Pro Text';
+  src:
+    url('/assets/fonts/SFProText-Semibold.woff2') format('woff2'),
+    url('/assets/fonts/SFProText-Semibold.woff') format('woff'),
+    url('/assets/fonts/SFProText-Semibold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Gilroy';
+  src:
+    url('/assets/fonts/Gilroy-Medium.woff2') format('woff2'),
+    url('/assets/fonts/Gilroy-Medium.woff') format('woff'),
+    url('/assets/fonts/Gilroy-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Gilroy';
+  src:
+    url('/assets/fonts/Gilroy-Semibold.woff2') format('woff2'),
+    url('/assets/fonts/Gilroy-Semibold.woff') format('woff'),
+    url('/assets/fonts/Gilroy-Semibold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Gilroy';
+  src:
+    url('/assets/fonts/Gilroy-Bold.woff2') format('woff2'),
+    url('/assets/fonts/Gilroy-Bold.woff') format('woff'),
+    url('/assets/fonts/Gilroy-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Overpass Mono';
+  src:
+    url('/assets/fonts/OverpassMono-Medium.woff2') format('woff2'),
+    url('/assets/fonts/OverpassMono-Medium.woff') format('woff'),
+    url('/assets/fonts/OverpassMono-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@layer base {
+  :root {
+    --font-sf-pro-text: 'SF Pro Text', sans-serif;
+    --font-gilroy: 'Gilroy', sans-serif;
+    --font-overpass-mono: 'Overpass Mono', monospace;
+
+    --color-bg: #ececec;
+    --color-bg-secondary: #ffffff;
+    --color-bg-block: #fbfbfb;
+    --color-border: #d7d7d7;
+    --color-border-secondary: #d1d5db;
+    --color-border-tertiary: #e5e7eb;
+    --color-border-contract-card: #f3f4f6;
+
+    --color-shadow: #e3e3e3;
+    --color-separator: #e3e3e3;
+
+    --color-text-primary: #4e4e4e;
+    --color-text-secondary: #d7d7d7;
+    --color-text-black: #000000;
+    --color-text-purple: #68004d;
+    --color-text-gray: #444444;
+    --color-text-light-gray: #a0a0a0;
+    --color-text-label: #747474;
+    --color-text-warning: #ef4444;
+    --color-text-yellow: #ffd100;
+
+    --color-input-active: #feb709;
+    --color-input-bg: #f9fafb;
+    --color-input-border: #e5e7eb;
+    --color-input-text-placeholder: #9ca3af;
+    --color-input-label: #515151;
+    --color-input-label-secondary: #374151;
+    --color-input-warning: #ff0000;
+
+    --color-button: #fecc09;
+    --color-button-border: #feb709;
+    --color-button-cancel: #ef4444;
+
+    --color-wrapper-container-bg: #f9fafb;
+    --color-wrapper-container-border: #e5e7eb;
+
+    --color-radiobutton-active: #68004d;
+    --color-radiobutton-inactive: #d7d7d7;
+    --color-checkbox-active: #68004d;
+    --color-checkbox-inactive: #d7d7d7;
+
+    --color-step-passed: #ffd21e;
+    --color-step-active: #68004d;
+    --color-step-inactive: #d7d7d7;
+
+    --color-dropdown-hover-bg: #444444;
+    --color-dropdown-hover-text: #ffffff;
+
+    /* Contract status badges (subset relevant to MVP) */
+    --color-text-contract-draft: #374151;
+    --color-bg-contract-draft: #f3f4f6;
+    --color-text-contract-pending: #1d4ed8;
+    --color-bg-contract-pending: #dbeafe;
+    --color-text-contract-partially-signed: #7e22ce;
+    --color-bg-contract-partially-signed: #f3e8ff;
+    --color-text-contract-signed: #15803d;
+    --color-bg-contract-signed: #dcfce7;
+    --color-text-contract-completed: #00a010;
+    --color-bg-contract-completed: #c0ffd6;
+    --color-text-contract-declined: #b8c7c2;
+    --color-bg-contract-declined: #e9f0ee;
+
+    --color-svg-bg: #facc15;
+    --color-svg-bg-secondary: #f4d96b;
+    --color-emoji-bg: #e0e0e0;
+    --color-role-text: #6b7280;
+
+    --color-form-blue: #2563eb;
+    --color-form-light-blue: #dbeafe;
+    --color-form-purple: #9333ea;
+    --color-form-light-purple: #f3e8ff;
+    --color-form-purple-secondary: #a855f7;
+    --color-form-green: #16a34a;
+    --color-form-light-green: #dcfce7;
+    --color-form-golden: #b97f05;
+    --color-form-light-golden: #fdefb7;
+    --color-form-brown: #b47a01;
+    --color-form-light-brown: #fdefb7;
+    --color-form-btn-disabled: #bcbcbc;
+    --color-form-btn-disabled-text: #6a6a6a;
+    --color-form-label-text: #374151;
+    --color-form-icon-bg: #ebebeb;
+    --color-form-checkbox-bg: #dbdbdb;
+    --color-form-steps-text: #00000080;
+
+    --color-text-dark-blue: #111827;
+    --color-text-start-page: #4b5563;
+    --color-button-start-page: #f9fafb;
+    --color-button-border-start-page: #f3f4f6;
+    --color-wallet-icon: #3b82f6;
+    --color-telegram-icon: #3b82f6;
+
+    --color-hourglass-icon: #5e005c;
+    --color-hourglass-icon-bg: #ffe47a;
+    --color-check-mark-icon: #005e0b;
+    --color-check-mark-icon-bg: #b9ffb5;
+    --color-wallet-address-input: #f5f5f5;
+    --color-wallet-address-input-text: #868686;
+    --color-continue-button-text: #5e0056;
+    --color-check-benefits-icon: #3e65b4;
+    --color-check-benefits-icon-bg: #dfe7f9;
+    --color-text-benefits: #374151;
+
+    --color-cancel-modal-button: #e7e7e7;
+    --color-cancel-modal-button-text: #5e0056;
+    --color-modal-success-icon: #018732;
+    --color-modal-success-icon-bg: #c0ffd6;
+    --color-modal-error-icon: #dc2626;
+    --color-modal-error-icon-bg: #fee2e2;
+    --color-modal-text: #4b5563;
+
+    --color-loader: #fecc09;
+    --color-bg-signature-button: #ececec;
+
+    --color-edit-icon: #8d8d8d;
+    --color-edit-bg: #fff9eb;
+    --color-edit-border: #fef08a;
+    --color-edit-text: #713f12;
+
+    --color-terms-description-text: #6b7280;
+
+    --color-tab-border: #68004d;
+    --color-text-calendar-grey: #1f2937;
+    --color-calendar-border: #e5e7eb;
+    --color-calendar-weekday-text: #9ca3af;
+    --color-calendar-day-text: #1f2937;
+    --color-date-range-bg: #fff5cc;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text-primary);
+    font-family: var(--font-gilroy);
+    font-weight: 500;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  #root {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .contract-page {
+    font-family: var(--font-gilroy);
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--color-text-black);
+    background-color: var(--color-bg-secondary);
+  }
+
+  .contract-title {
+    font-family: var(--font-gilroy);
+    font-weight: 700;
+    text-align: center;
+    font-size: 18px;
+    color: var(--color-text-black);
+  }
+
+  .contract-subtitle {
+    font-family: var(--font-gilroy);
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--color-text-purple);
+    margin-top: 30px;
+  }
+
+  .contract-text {
+    margin-top: 20px;
+    line-height: 1.5;
+    color: var(--color-text-black);
+  }
+
+  .contract-text-indent {
+    margin-top: 20px;
+    text-indent: 16px;
+    line-height: 1.5;
+  }
+
+  .contract-caption {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--color-text-label);
+  }
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+@keyframes bottomModalBackdropFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes bottomModalBackdropFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes bottomModalPanelSlideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes bottomModalPanelSlideDown {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+.bottom-modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.5);
+  animation: bottomModalBackdropFadeIn 0.3s ease-out;
+}
+.bottom-modal-backdrop.closing {
+  animation: bottomModalBackdropFadeOut 0.3s ease-in forwards;
+}
+
+.bottom-modal-panel {
+  animation: bottomModalPanelSlideUp 0.3s ease-out;
+}
+.bottom-modal-panel.closing {
+  animation: bottomModalPanelSlideDown 0.3s ease-in forwards;
+}
+
+@keyframes bottomModalPanelFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes bottomModalPanelFadeOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+@media (min-width: 500px) {
+  .bottom-modal-panel {
+    animation: bottomModalPanelFadeIn 0.3s ease-out;
+  }
+  .bottom-modal-panel[data-max-width] {
+    max-width: var(--bottom-modal-max-width);
+  }
+  .bottom-modal-panel.closing {
+    animation: bottomModalPanelFadeOut 0.3s ease-in forwards;
+  }
+}

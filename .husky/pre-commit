@@ -1,9 +1,32 @@
 #!/usr/bin/env sh
 set -e
 
+if ! command -v npm >/dev/null 2>&1; then
+  for candidate in \
+    "/c/Program Files/nodejs" \
+    "/c/Program Files (x86)/nodejs" \
+    "$LOCALAPPDATA/Programs/nodejs" \
+    "$APPDATA/npm" \
+    "$HOME/AppData/Roaming/npm" \
+    "$HOME/scoop/apps/nodejs/current" \
+    "$HOME/scoop/apps/nodejs-lts/current"
+  do
+    if [ -x "$candidate/npm" ] || [ -f "$candidate/npm.cmd" ]; then
+      PATH="$candidate:$PATH"
+    fi
+  done
+  export PATH
+fi
+
+if ! command -v npm >/dev/null 2>&1; then
+  echo "pre-commit: npm is not in PATH." >&2
+  echo "  Install Node.js (https://nodejs.org) and ensure it is on PATH," >&2
+  echo "  or run 'git commit --no-verify' to bypass this hook." >&2
+  exit 1
+fi
+
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT/frontend"
 
 npm run format:check
 npm run lint
-
