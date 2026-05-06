@@ -1,11 +1,17 @@
 # Production stack for the Split deployment server.
-# `landing` is the only service with a working Dockerfile right now;
-# add `frontend`/`backend` blocks alongside as their Dockerfiles land.
-#
 # Used by .github/workflows/deploy.yml — a manual workflow_dispatch
 # pulls the requested ref on the host and runs `docker compose up -d --build`.
 
 services:
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: split-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+
   landing:
     build:
       context: .
@@ -13,7 +19,8 @@ services:
       args:
         # NEXT_PUBLIC_* are inlined into the JS bundle at build time, so they
         # must be set when the image is built, not at container start.
-        NEXT_PUBLIC_DEMO_URL: ${NEXT_PUBLIC_DEMO_URL:-https://github.com/colosseum-team/split}
+        # Defaults point at the staging host; override via env on other targets.
+        NEXT_PUBLIC_DEMO_URL: ${NEXT_PUBLIC_DEMO_URL:-http://84.235.174.228:3000}
         NEXT_PUBLIC_GITHUB_URL: ${NEXT_PUBLIC_GITHUB_URL:-https://github.com/colosseum-team/split}
     container_name: split-landing
     restart: unless-stopped
