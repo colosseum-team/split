@@ -1,0 +1,23 @@
+{
+  "name": "landing",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Marketing landing page for Split — non-custodial freelance escrow on Solana.",
+  "scripts": {
+    "dev": "next dev -p 3001",
+    "build": "next build",
+    "start": "next start -p 3001",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "^15.0.0",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^5.4.5"
+  }
+}

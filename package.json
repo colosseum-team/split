@@ -5,7 +5,8 @@
   "workspaces": [
     "frontend",
     "backend",
-    "contracts"
+    "contracts",
+    "landing"
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
@@ -15,6 +16,7 @@
     "frontend": "npm run dev -w frontend",
     "backend": "npm run dev -w backend",
     "contracts": "npm run dev -w contracts",
+    "landing": "npm run dev -w landing",
     "install-all": "npm install"
   }
 }
