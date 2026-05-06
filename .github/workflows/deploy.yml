@@ -1,0 +1,89 @@
+name: Deploy
+
+# Manual deploy to the Oracle ARM host running the production stack.
+# Trigger from the Actions tab → "Deploy" → "Run workflow" and pick the ref.
+#
+# Required repository secrets:
+#   SSH_HOST          — public IP/hostname of the deploy target
+#   SSH_USER          — ssh login (e.g. "ubuntu")
+#   SSH_PRIVATE_KEY   — full contents of the OpenSSH private key (begins with
+#                       "-----BEGIN OPENSSH PRIVATE KEY-----")
+#
+# The host must already have Docker and Compose v2 installed; the workflow
+# clones the repo on first run and reuses ~/split on subsequent runs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch, tag, or SHA to deploy"
+        required: true
+        default: "main"
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy ${{ github.event.inputs.ref }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Resolve commit SHA
+        id: sha
+        env:
+          REF: ${{ github.event.inputs.ref }}
+        run: |
+          set -euo pipefail
+          SHA=$(git ls-remote https://github.com/${{ github.repository }}.git "$REF" | awk '{print $1}' | head -n1)
+          if [ -z "$SHA" ]; then
+            # Maybe the input is already a SHA — verify it exists on the remote.
+            SHA=$(git ls-remote https://github.com/${{ github.repository }}.git | awk -v r="$REF" '$1 ~ "^"r {print $1; exit}')
+          fi
+          if [ -z "$SHA" ]; then
+            echo "::error::Could not resolve ref '$REF' to a commit on origin"
+            exit 1
+          fi
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "Resolved $REF → $SHA"
+
+      - name: Configure SSH
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Deploy
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          REPO_URL: https://github.com/${{ github.repository }}.git
+          DEPLOY_SHA: ${{ steps.sha.outputs.sha }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes "$SSH_USER@$SSH_HOST" \
+            REPO_URL="$REPO_URL" DEPLOY_SHA="$DEPLOY_SHA" bash -se <<'REMOTE'
+          set -euo pipefail
+
+          if [ ! -d ~/split/.git ]; then
+            git clone "$REPO_URL" ~/split
+          fi
+
+          cd ~/split
+          git fetch --prune origin
+          git checkout --detach "$DEPLOY_SHA"
+
+          # Build any new images and roll containers; --remove-orphans clears
+          # services that have been removed from compose since the last deploy.
+          docker compose build --pull
+          docker compose up -d --remove-orphans
+          docker compose ps
+          REMOTE
