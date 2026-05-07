@@ -1,5 +1,6 @@
 import { type FC, useState } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
+import { nanoid } from 'nanoid'
 import { ShieldCheckIcon } from '@heroicons/react/24/outline'
 import { BottomModal, Button } from '@/shared/ui'
 import type { Contract } from '@/entities/contract'
@@ -9,6 +10,8 @@ interface SignContractModalProps {
   isOpen: boolean
   onClose: () => void
   contract: Contract
+  /** Which party is signing; demo bypass is only offered for the performer. */
+  signingSide: 'customer' | 'performer' | null
   onSigned: (signature: string) => void
 }
 
@@ -16,6 +19,7 @@ export const SignContractModal: FC<SignContractModalProps> = ({
   isOpen,
   onClose,
   contract,
+  signingSide,
   onSigned,
 }) => {
   const { signMessage, publicKey } = useWallet()
@@ -37,6 +41,10 @@ export const SignContractModal: FC<SignContractModalProps> = ({
     } finally {
       setIsSigning(false)
     }
+  }
+
+  const handleDemoPerformerSign = () => {
+    onSigned(`demo-performer:${nanoid()}`)
   }
 
   return (
@@ -63,6 +71,17 @@ export const SignContractModal: FC<SignContractModalProps> = ({
           <Button onClick={handleSign} disabled={isSigning || !signMessage} className="w-full">
             {isSigning ? 'Waiting for wallet…' : 'Sign with wallet'}
           </Button>
+          {signingSide === 'performer' ? (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleDemoPerformerSign}
+              disabled={isSigning}
+              className="w-full"
+            >
+              Sign with demo signature
+            </Button>
+          ) : null}
           <Button onClick={onClose} variant="ghost" className="w-full">
             Cancel
           </Button>

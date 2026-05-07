@@ -21,6 +21,11 @@ interface ContractsState {
   create: (input: CreateContractInput, createdBy: string) => Contract
   getById: (id: string) => Contract | undefined
   signByWallet: (id: string, signature: ContractSignature, side: 'customer' | 'performer') => void
+  /**
+   * Demo flow helper: once a performer connects a wallet, bind it to the contract
+   * if performer wallet is not set yet (claim).
+   */
+  claimPerformerWallet: (id: string, performerWallet: string) => void
   markCompleted: (id: string) => void
   decline: (id: string) => void
   seedPerformerMockOnce: (performerWallet: string) => void
@@ -97,6 +102,20 @@ export const useContractsStore = create<ContractsState>()(
             }
             next.status = computeContractStatus(next)
             return next
+          }),
+        }))
+      },
+
+      claimPerformerWallet: (id, performerWallet) => {
+        set((state) => ({
+          contracts: state.contracts.map((c) => {
+            if (c.id !== id) return c
+            if (c.performer.walletAddress) return c
+            return {
+              ...c,
+              performer: { ...c.performer, walletAddress: performerWallet },
+              updatedAt: new Date().toISOString(),
+            }
           }),
         }))
       },

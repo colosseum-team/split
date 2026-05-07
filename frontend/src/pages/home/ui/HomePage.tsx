@@ -18,12 +18,15 @@ export const HomePage: FC = () => {
   const [filter, setFilter] = useState<StatusFilter>('all')
 
   const myContracts = useMemo(() => {
+    if (role === 'performer') {
+      // Demo inbox: show unclaimed contracts (no performer wallet yet) + contracts assigned to this wallet.
+      return contracts.filter(
+        (c) => !c.performer.walletAddress || c.performer.walletAddress === walletAddress,
+      )
+    }
     if (!walletAddress) return []
-    return contracts.filter(
-      (c) =>
-        c.customer.walletAddress === walletAddress || c.performer.walletAddress === walletAddress,
-    )
-  }, [contracts, walletAddress])
+    return contracts.filter((c) => c.customer.walletAddress === walletAddress)
+  }, [contracts, role, walletAddress])
 
   const filtered = useMemo(() => {
     switch (filter) {

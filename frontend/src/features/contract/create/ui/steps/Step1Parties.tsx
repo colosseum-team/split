@@ -61,7 +61,8 @@ export const Step1Parties: FC<Step1PartiesProps> = ({ form }) => {
         <div>
           <h3 className="text-h3 text-(--color-text-primary)">Performer</h3>
           <p className="text-[13px] font-medium text-(--color-text-muted) mt-1">
-            Pre-filled performer details. For the MVP these fields are read-only.
+            For the demo, the performer wallet will be attached when the performer connects their
+            wallet.
           </p>
         </div>
 
@@ -86,7 +87,14 @@ export const Step1Parties: FC<Step1PartiesProps> = ({ form }) => {
         <Controller
           name="performerWalletAddress"
           control={control}
-          render={({ field }) => <Input {...field} label="Performer wallet" readOnly />}
+          render={({ field }) => (
+            <Input
+              {...field}
+              label="Performer wallet"
+              placeholder="Will be set by performer"
+              readOnly
+            />
+          )}
         />
       </section>
     </div>

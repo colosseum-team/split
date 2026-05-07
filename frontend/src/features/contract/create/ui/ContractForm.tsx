@@ -20,7 +20,6 @@ const MOCK_PERFORMER = {
   fullName: 'Maya Reyes',
   email: 'maya.reyes@split.demo',
   companyName: 'Independent contractor',
-  walletAddress: 'PerformerDemoWalletAddress00000000000000000000',
 }
 
 const TOTAL_STEPS = 6
@@ -55,7 +54,7 @@ export const ContractForm: FC<ContractFormProps> = ({ templateKey }) => {
       performerFullName: MOCK_PERFORMER.fullName,
       performerEmail: MOCK_PERFORMER.email,
       performerCompanyName: MOCK_PERFORMER.companyName,
-      performerWalletAddress: MOCK_PERFORMER.walletAddress,
+      performerWalletAddress: '',
       technicalAssignment: template?.defaultTechnicalAssignment ?? '',
       subject: template?.defaultSubject ?? '',
       startDate: null,
@@ -114,7 +113,7 @@ export const ContractForm: FC<ContractFormProps> = ({ templateKey }) => {
           fullName: values.performerFullName,
           email: values.performerEmail,
           companyName: values.performerCompanyName || undefined,
-          walletAddress: values.performerWalletAddress,
+          walletAddress: values.performerWalletAddress || undefined,
         },
         subject: values.subject,
         technicalAssignment: values.technicalAssignment,

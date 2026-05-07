@@ -21,7 +21,7 @@ export const ConditionDetailsModal: FC<ConditionDetailsModalProps> = ({
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-[520px]">
       <div className="flex flex-col gap-4 pr-6">
-        <div className="flex items-start gap-3">
+        <div className="flex items-center gap-3">
           {icon ? (
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-(--color-brand-soft) text-(--color-brand) [&>svg]:h-7 [&>svg]:w-7">
               {icon}

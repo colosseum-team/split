@@ -1,10 +1,9 @@
-import { type FC, useMemo, useState } from 'react'
+import { type FC, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   BoltIcon,
   ChevronLeftIcon,
   DocumentTextIcon,
-  PencilIcon,
 } from '@heroicons/react/24/outline'
 import { useContractsStore } from '@/entities/contract'
 import { useUserStore } from '@/entities/user'
@@ -20,6 +19,7 @@ export const ContractViewPage: FC = () => {
   const contract = useContractsStore((s) => (id ? s.contracts.find((c) => c.id === id) : undefined))
   const signByWallet = useContractsStore((s) => s.signByWallet)
   const markCompleted = useContractsStore((s) => s.markCompleted)
+  const claimPerformerWallet = useContractsStore((s) => s.claimPerformerWallet)
 
   const role = useUserStore((s) => s.role)
   const walletAddress = useUserStore((s) => s.walletAddress)
@@ -39,6 +39,14 @@ export const ContractViewPage: FC = () => {
     if (contract.performer.walletAddress === walletAddress) return 'performer'
     return null
   }, [contract, walletAddress])
+
+  useEffect(() => {
+    if (!contract || !id) return
+    if (role !== 'performer') return
+    if (!walletAddress) return
+    if (contract.performer.walletAddress) return
+    claimPerformerWallet(id, walletAddress)
+  }, [claimPerformerWallet, contract, id, role, walletAddress])
 
   if (!contract) {
     return (
@@ -140,7 +148,6 @@ export const ContractViewPage: FC = () => {
               {canSign && (
                 <Button onClick={() => setIsSignOpen(true)} size="lg" className="flex-1">
                   <DocumentTextIcon className="w-5 h-5" />
-                  <PencilIcon className="w-5 h-5" />
                   Sign contract
                 </Button>
               )}
@@ -164,6 +171,7 @@ export const ContractViewPage: FC = () => {
         isOpen={isSignOpen}
         onClose={() => setIsSignOpen(false)}
         contract={contract}
+        signingSide={side}
         onSigned={handleSigned}
       />
 
