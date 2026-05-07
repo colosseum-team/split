@@ -5,6 +5,7 @@ import { HomePage } from '@/pages/home'
 import { SelectTemplatePage } from '@/pages/contracts/new'
 import { ContractCreatePage } from '@/pages/contracts/create'
 import { ContractViewPage } from '@/pages/contracts/view'
+import { ContractDocumentPage } from '@/pages/contracts/document'
 
 export function AppRouter() {
   return (
@@ -42,6 +43,14 @@ export function AppRouter() {
           element={
             <ProtectedRoute>
               <ContractViewPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/contracts/:id/document"
+          element={
+            <ProtectedRoute>
+              <ContractDocumentPage />
             </ProtectedRoute>
           }
         />

@@ -1,6 +1,6 @@
-import { sha256 } from '@noble/hashes/sha2'
-import { bytesToHex } from '@noble/hashes/utils'
 import bs58 from 'bs58'
+import { hexToBytes } from '@noble/hashes/utils'
+import { computeContractTextHash } from '@/entities/contract'
 
 export interface SignContractParams {
   text: string
@@ -22,10 +22,8 @@ export const signContractText = async ({
   text,
   signMessage,
 }: SignContractParams): Promise<SignContractResult> => {
-  const encoder = new TextEncoder()
-  const messageBytes = encoder.encode(text)
-  const hashBytes = sha256(messageBytes)
-  const textHash = bytesToHex(hashBytes)
+  const textHash = computeContractTextHash(text)
+  const hashBytes = hexToBytes(textHash)
 
   const signatureBytes = await signMessage(hashBytes)
   const signature = bs58.encode(signatureBytes)

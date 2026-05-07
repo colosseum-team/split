@@ -1,9 +1,10 @@
 import { type FC, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ChevronDownIcon, ChevronUpIcon, DocumentTextIcon } from '@heroicons/react/24/outline'
 import type { Contract } from '@/entities/contract'
 import { findCountryByCode } from '@/shared/constants/countries'
 import { findCurrencyByCode } from '@/shared/constants/currencies'
-import { Button, Card, Modal, StatusBadge } from '@/shared/ui'
+import { Button, Card, StatusBadge } from '@/shared/ui'
 
 interface ContractSummaryProps {
   contract: Contract
@@ -28,7 +29,7 @@ const truncateAddress = (address: string | undefined) =>
   !address ? '—' : `${address.slice(0, 4)}…${address.slice(-4)}`
 
 export const ContractSummary: FC<ContractSummaryProps> = ({ contract, actions }) => {
-  const [isContractOpen, setIsContractOpen] = useState(false)
+  const navigate = useNavigate()
   const [isAssignmentExpanded, setIsAssignmentExpanded] = useState(false)
 
   const country = findCountryByCode(contract.jurisdictionCode)
@@ -164,7 +165,7 @@ export const ContractSummary: FC<ContractSummaryProps> = ({ contract, actions })
 
       <div className="flex flex-col md:flex-row gap-3">
         <Button
-          onClick={() => setIsContractOpen(true)}
+          onClick={() => navigate(`/contracts/${contract.id}/document`)}
           variant="secondary"
           size="lg"
           className="flex-1"
@@ -174,22 +175,6 @@ export const ContractSummary: FC<ContractSummaryProps> = ({ contract, actions })
         </Button>
         {actions}
       </div>
-
-      <Modal
-        isOpen={isContractOpen}
-        onClose={() => setIsContractOpen(false)}
-        className="max-w-[720px] md:my-10"
-      >
-        <div className="flex flex-col gap-4 max-h-[80vh]">
-          <h2 className="text-h2 text-(--color-text-primary)">Contract text</h2>
-          <pre
-            className="flex-1 overflow-y-auto whitespace-pre-wrap wrap-break-word text-body text-(--color-text-primary) bg-(--color-surface-muted) rounded-[var(--radius-md)] p-4 custom-scrollbar"
-            style={{ fontFamily: 'inherit' }}
-          >
-            {contract.text}
-          </pre>
-        </div>
-      </Modal>
     </div>
   )
 }
