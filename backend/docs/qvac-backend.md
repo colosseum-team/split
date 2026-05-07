@@ -2,28 +2,37 @@
 
 This document describes the backend-side QVAC flow for `split`.
 
+## Architecture
+
+- **In-process inference:** the API runs QVAC via `@qvac/sdk` inside the Node process. There is **no** separate HTTP worker service; the SDK spawns a **Bare** subprocess and talks to it over IPC.
+- **Patches:** the repo uses [`patch-package`](https://github.com/ds300/patch-package) from the **monorepo root** (`postinstall` in root `package.json`). After `npm install`, `patches/@qvac+sdk+*.patch` is applied. Docker dev runs `npx patch-package` in the backend startup command so the bind-mounted volume gets the patch.
+- **`GET /health`** includes a `qvac` field when `QVAC_ENABLED=true` (warm-up state: `warming` → `ready` or `error`).
+
 ## Goal
 
 Move AI execution from browser runtime to backend runtime:
 
 - frontend sends AI input to backend;
-- backend executes QVAC via `@qvac/sdk`;
-- backend stores normalized output in `AiOutput`;
-- frontend receives persisted result payload.
+- backend executes QVAC via `@qvac/sdk` (Bare runtime);
+- backend stores normalized output in `AiOutput` (on `*-run` routes);
+- frontend receives the result (preview or persisted payload).
 
 ## Environment
 
-Add to `backend/.env`:
+Add to `backend/.env` (see `.env.example`):
 
 ```env
 QVAC_ENABLED=true
 QVAC_MODEL_ID=qvac-llamacpp
 QVAC_MODEL_VERSION=0.17.4
+# Bare worker IPC init timeout (ms). Compose sets 900000; first model load in Docker can be slow.
+QVAC_RPC_INIT_TIMEOUT_MS=900000
 ```
 
-Install backend dependencies:
+Install dependencies from the **repository root** so workspaces and patches resolve:
 
 ```bash
+npm install
 npm install --workspace backend
 ```
 
@@ -57,11 +66,24 @@ Checks:
 
 ## Endpoints
 
-### POST `/contracts/:id/copilot-run`
+Copilot endpoints accept **`scenario`**: `"design"` | `"logo"`.
 
-Runs QVAC contract copilot on backend and stores one `AiOutput` row (`kind=contract_copilot`).
+### Contract copilot `input` (two shapes)
 
-Request body:
+Use **either** a single textarea payload **or** four explicit sections. Bodies must be `{ "scenario": "…", "input": { … } }` — no extra keys (Zod `.strict()`).
+
+**1. Single draft (recommended for wizard step with one technical assignment)**
+
+```json
+{
+  "scenario": "design",
+  "input": {
+    "technicalAssignment": "Full text of the technical assignment …"
+  }
+}
+```
+
+**2. Sectioned draft (advanced UI / demo presets)**
 
 ```json
 {
@@ -75,9 +97,15 @@ Request body:
 }
 ```
 
+The backend normalizes both to one internal draft before building the LLM prompt.
+
+### POST `/contracts/:id/copilot-run`
+
+Runs QVAC contract copilot on backend and stores one `AiOutput` row (`kind=contract_copilot`).
+
 Access:
 
-- authenticated user;
+- authenticated user (`Authorization: Bearer <jwt>`);
 - only contract `customer`.
 
 Response includes:
@@ -87,9 +115,11 @@ Response includes:
 
 ### POST `/ai/copilot-preview`
 
-Runs the same copilot inference without requiring a contract id and without writing `AiOutput`.
+Runs the same copilot inference **without** a contract id and **without** persisting `AiOutput`.
 
-Use this route from contract creation UI where the contract is not saved yet.
+Used from contract creation UI before save. Requires the same JWT as other authenticated routes.
+
+Request body uses the **`input`** shapes described above (`technicalAssignment` or four section strings).
 
 ### POST `/contracts/:id/dispute-run`
 
@@ -129,11 +159,12 @@ Scalars:
 
 ## Frontend contract
 
-Frontend should call `*-run` routes when AI source is `qvac`.
-Use `*-output` routes only for legacy/browser-local inference mode.
+- Prefer **`POST /ai/copilot-preview`** for “improve technical assignment” during creation (payload: **`technicalAssignment`** when there is only one textarea).
+- Use **`POST /contracts/:id/copilot-run`** when the contract exists and outputs should be stored.
+- Use `*-output` routes only for legacy flows where inference ran elsewhere and the client posts a finished JSON result.
 
 Suggested rollout:
 
-1. keep `demo` mode as fallback;
-2. enable `qvac-api` mode for internal/staging;
-3. remove browser-executed QVAC adapter after validation.
+1. Keep **`demo`** mode as fallback (`VITE_AI_SOURCE=demo`).
+2. Use **`qvac`** (`VITE_AI_SOURCE=qvac`) with backend base URL and wallet SIWS JWT for `/ai/copilot-preview` and `*-run`.
+3. Retire browser-executed QVAC (`qvacLocalAiAdapter`) for production demos once backend path is validated.

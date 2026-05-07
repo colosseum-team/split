@@ -66,9 +66,9 @@ Responsibilities:
 
 ## QVAC modes
 
-The backend supports two modes:
+The backend supports two integration styles:
 
-- Browser-local inference mode (legacy): frontend posts completed AI output via `*-output` routes.
-- Backend inference mode (recommended): frontend calls `*-run` routes; backend executes QVAC and persists the output.
+- **Backend inference (recommended):** frontend calls `/ai/copilot-preview` or `/contracts/:id/*-run`; the server runs **`@qvac/sdk` in-process** (Bare subprocess for native modules). Persisted outputs use `*-run` routes.
+- **Legacy:** frontend ran QVAC elsewhere and POSTs finished JSON via `*-output` routes.
 
-Detailed setup and payload contracts are documented in `backend/docs/qvac-backend.md`.
+Copilot **`input`** can be **`{ "technicalAssignment": "…" }`** (single textarea) **or** the four-field section object. See **`backend/docs/qvac-backend.md`** for Docker prerequisites (Vulkan, libatomic), env vars (`QVAC_RPC_INIT_TIMEOUT_MS`), and examples.

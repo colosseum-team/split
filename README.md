@@ -30,10 +30,10 @@ This repository is in active hackathon build phase.
 
 ## Project structure
 
-- `frontend/` - React + TypeScript + Vite application (UI, onboarding flow, contract list screens).
-- `backend/` - API layer and business logic (auth by wallet signature, role model, contracts endpoints).
-- `contracts/` - Solana smart contracts / on-chain integration layer.
-- `docs/` - architecture, plan, demo flow, and submission support docs.
+- `frontend/` — React + TypeScript + Vite (UI, onboarding, contracts).
+- `backend/` — Fastify API: wallet JWT auth, contracts, optional **on-server QVAC** (`@qvac/sdk` + Bare). See `backend/docs/qvac-backend.md` for AI setup.
+- `contracts/` — Solana programs / integration.
+- `docs/` — architecture, plans, demo scripts.
 
 ### Frontend structure (`frontend/src`)
 
@@ -46,36 +46,47 @@ This repository is in active hackathon build phase.
 
 ## Local run
 
-1. Install dependencies:
+1. Install from repo root (`patch-package` applies `patches/@qvac+sdk+*.patch` after install):
    - `npm install`
-2. Run frontend:
+2. Frontend:
    - `npm run dev --workspace frontend`
-3. (Planned) run backend:
+3. Backend (needs Postgres — use Docker Compose or a local DB):
+   - `cp backend/.env.example backend/.env` and set `DATABASE_URL`
+   - `npm run prisma:generate --workspace backend && npm run prisma:migrate --workspace backend`
    - `npm run dev --workspace backend`
 
-### Local run in Docker (hot reload)
+### Docker dev stack (Postgres + API + QVAC-ready backend + Vite)
 
-- Start dev stack (frontend + backend + postgres):
-  - `docker compose -f docker-compose.dev.yml up -d`
-- Frontend dev server:
-  - [http://localhost:5173](http://localhost:5173)
-- Backend API:
-  - [http://localhost:4000/health](http://localhost:4000/health)
+First run should build the backend image (Bare needs native libs in the image):
+
+```bash
+docker compose -f docker-compose.dev.yml up --build
+```
+
+- Frontend: [http://localhost:5173](http://localhost:5173)
+- API / health / Swagger: [http://localhost:4000/health](http://localhost:4000/health), [http://localhost:4000/docs](http://localhost:4000/docs)
+
+QVAC in Docker notes (timeouts, Vulkan, arm64 vs amd64): **`backend/docs/qvac-backend.md`**.
+
+### Shortcut (postgres only)
+
+- `docker compose up -d postgres` then run the backend locally as in step 3 above.
 
 ## What is implemented vs planned
 
 - Implemented now:
-  - Monorepo workspace structure.
-  - Frontend foundation and role-focused product direction.
-  - Project-level implementation and delivery documentation.
+  - Monorepo workspaces; wallet SIWS JWT + contracts API sketch in backend.
+  - Frontend contracts UX; optional **`VITE_AI_SOURCE=qvac`** calls backend **`/ai/copilot-preview`** (requires auth).
+  - QVAC inference on the server (`@qvac/sdk`, Bare): see **`backend/docs/qvac-backend.md`**.
 - In progress / planned:
-  - Wallet signature auth API, roles API, contracts API in `backend/`.
-  - Solana escrow program and on-chain event integration in `contracts/`.
-  - End-to-end contract lifecycle: create -> fund -> accept -> submit -> approve/dispute.
+  - Production escrow flows and tighter Solana integration in `contracts/`.
+  - End-to-end lifecycle polish: fund → milestones → approve / dispute paths.
 
 ## Documentation
 
 - Implementation plan: [`docs/implementation-plan.md`](docs/implementation-plan.md)
+- QVAC product/architecture plan: [`docs/qvac-ai-arbitration-plan.md`](docs/qvac-ai-arbitration-plan.md)
+- **QVAC backend setup (Docker, API payloads, Bare): [`backend/docs/qvac-backend.md`](backend/docs/qvac-backend.md)**
 - System architecture: [`docs/architecture.md`](docs/architecture.md)
 - Demo walkthrough script: [`docs/demo-script.md`](docs/demo-script.md)
 - Post-hackathon roadmap: [`docs/roadmap-post-hackathon.md`](docs/roadmap-post-hackathon.md)
