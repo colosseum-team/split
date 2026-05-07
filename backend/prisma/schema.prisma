@@ -1,0 +1,133 @@
+// Prisma schema for the Split backend.
+// Roles: customer (creates contracts) / user (executes work).
+// AI inference (QVAC) runs in the browser; this schema only stores AI outputs metadata.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  customer
+  user
+}
+
+enum ContractStatus {
+  draft
+  open
+  funded
+  in_progress
+  review
+  completed
+  disputed
+  cancelled
+}
+
+enum DisputeOutcome {
+  PERFORMER_WON
+  CLIENT_WON
+  INCONCLUSIVE
+}
+
+enum AiOutputKind {
+  contract_copilot
+  dispute_brief
+}
+
+model User {
+  id                String     @id @default(uuid())
+  walletAddress     String     @unique
+  role              Role?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  ownedContracts    Contract[] @relation("ContractCustomer")
+  assignedContracts Contract[] @relation("ContractAssignee")
+}
+
+model Nonce {
+  walletAddress String   @id
+  nonce         String
+  expiresAt     DateTime
+
+  @@index([expiresAt])
+}
+
+model Contract {
+  id              String         @id @default(uuid())
+  title           String
+  description     String
+  amount          BigInt
+  currency        String         @default("USDC")
+  status          ContractStatus @default(draft)
+  deadline        DateTime?
+
+  customerAddress String
+  customer        User           @relation("ContractCustomer", fields: [customerAddress], references: [walletAddress], onDelete: Restrict)
+
+  assigneeAddress String?
+  assignee        User?          @relation("ContractAssignee", fields: [assigneeAddress], references: [walletAddress], onDelete: SetNull)
+
+  // SHA-256 hex of canonicalized contract terms. Frontend passes this to the
+  // Anchor `Initialize` instruction so the on-chain state ties to a fixed document.
+  contractHash    String?
+
+  // Off-chain pointer to the on-chain escrow PDA once the program creates it.
+  onchainAddress  String?
+
+  // Tx signatures for auditability.
+  fundTxSignature      String?
+  approveTxSignature   String?
+  resolveTxSignature   String?
+
+  // Submitted work (set when user submits for review).
+  submissionPayload    String?
+  submissionAt         DateTime?
+
+  // Dispute fields. AI brief itself lives in AiOutput rows for traceability.
+  disputeOpenedBy      Role?
+  disputeOpenedAt      DateTime?
+  disputeOutcome       DisputeOutcome?
+  disputeResolvedAt    DateTime?
+
+  aiOutputs            AiOutput[]
+
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  @@index([customerAddress])
+  @@index([assigneeAddress])
+  @@index([status])
+}
+
+// QVAC AI outputs: contract copilot suggestions and dispute briefs.
+// Backend never invokes a model — it only persists results posted by the
+// frontend after on-device inference, plus the metadata judges need to
+// verify it was local (model_id / model_version / hashes).
+model AiOutput {
+  id            String       @id @default(uuid())
+  contractId    String
+  contract      Contract     @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  kind          AiOutputKind
+  modelId       String
+  modelVersion  String
+  inputHash     String
+  outputHash    String
+
+  // Strict JSON payload matching the schema documented in
+  // docs/qvac-ai-arbitration-plan.md (copilot vs dispute brief).
+  resultJson    Json
+
+  // Optional self-reported similarity / risk for fast UI rendering.
+  similarityScore Float?
+  riskScore       Int?
+
+  createdAt     DateTime     @default(now())
+
+  @@index([contractId, kind, createdAt])
+}

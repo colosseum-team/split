@@ -1,0 +1,53 @@
+# Production stack for the Split deployment server.
+# Used by .github/workflows/deploy.yml — a manual workflow_dispatch
+# pulls the requested ref on the host and runs `docker compose up -d --build`.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: split-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-split}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-split}
+      POSTGRES_DB: ${POSTGRES_DB:-split}
+    ports:
+      - '5432:5432'
+    volumes:
+      - split-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-split} -d ${POSTGRES_DB:-split}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: split-frontend
+    restart: unless-stopped
+    ports:
+      - '3000:80'
+
+  landing:
+    build:
+      context: .
+      dockerfile: landing/Dockerfile
+      args:
+        # NEXT_PUBLIC_* are inlined into the JS bundle at build time, so they
+        # must be set when the image is built, not at container start.
+        # Defaults point at the staging host; override via env on other targets.
+        NEXT_PUBLIC_DEMO_URL: ${NEXT_PUBLIC_DEMO_URL:-http://84.235.174.228:3000}
+        NEXT_PUBLIC_GITHUB_URL: ${NEXT_PUBLIC_GITHUB_URL:-https://github.com/colosseum-team/split}
+    container_name: split-landing
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
+    ports:
+      - '3001:3000'
+
+volumes:
+  split-postgres-data:

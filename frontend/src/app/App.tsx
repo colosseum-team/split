@@ -1,10 +1,13 @@
+import { SolanaProvider } from './providers/SolanaProvider'
 import { StoreProvider } from './providers/StoreProvider'
-import { HomePage } from '../pages/home'
+import { AppRouter } from './router/AppRouter'
 
 export function App() {
   return (
-    <StoreProvider>
-      <HomePage />
-    </StoreProvider>
+    <SolanaProvider>
+      <StoreProvider>
+        <AppRouter />
+      </StoreProvider>
+    </SolanaProvider>
   )
 }
