@@ -13,6 +13,8 @@
     "prepare": "cd .. && npx husky"
   },
   "dependencies": {
+    "@qvac/embed-llamacpp": "latest",
+    "@qvac/llm-llamacpp": "latest",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "zustand": "^5.0.13"

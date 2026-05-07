@@ -1,4 +1,5 @@
 import type {
+  AiSource,
   ContractCopilotResult,
   ContractDraft,
   DemoScenario,
@@ -9,7 +10,30 @@ import type {
 
 const simulateLocalDelay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
-export function createLocalAiService(adapter: LocalAiAdapter) {
+type LocalAiServiceOptions = {
+  source: AiSource
+  adapters: {
+    demo: LocalAiAdapter
+    qvac: LocalAiAdapter
+  }
+  fallbackToDemo?: boolean
+}
+
+export function createLocalAiService(options: LocalAiServiceOptions) {
+  const { source, adapters, fallbackToDemo = true } = options
+
+  const runWithSource = async <T>(runner: (adapter: LocalAiAdapter) => Promise<T>): Promise<T> => {
+    const preferredAdapter = source === 'qvac' ? adapters.qvac : adapters.demo
+    try {
+      return await runner(preferredAdapter)
+    } catch (error) {
+      if (source === 'qvac' && fallbackToDemo) {
+        return runner(adapters.demo)
+      }
+      throw error
+    }
+  }
+
   return {
     async improveContract(
       input: ContractDraft,
@@ -19,7 +43,7 @@ export function createLocalAiService(adapter: LocalAiAdapter) {
         throw new Error('Enable a demo scenario to run local AI.')
       }
       await simulateLocalDelay(1200)
-      return adapter.improveContract(input, scenario)
+      return runWithSource((adapter) => adapter.improveContract(input, scenario))
     },
     async generateDisputeSummary(
       input: DisputeInput,
@@ -29,7 +53,7 @@ export function createLocalAiService(adapter: LocalAiAdapter) {
         throw new Error('Enable a demo scenario to run local AI.')
       }
       await simulateLocalDelay(1400)
-      return adapter.generateDisputeSummary(input, scenario)
+      return runWithSource((adapter) => adapter.generateDisputeSummary(input, scenario))
     },
   }
 }

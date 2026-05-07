@@ -1,4 +1,5 @@
 export type DemoScenario = 'off' | 'design' | 'logo'
+export type AiSource = 'demo' | 'qvac'
 
 export type ContractDraft = {
   scope: string

@@ -1,14 +1,32 @@
 import { useMemo, useState } from 'react'
 import { demoLocalAiAdapter } from '../../../features/ai/adapters/demoLocalAiAdapter'
+import { qvacLocalAiAdapter } from '../../../features/ai/adapters/qvacLocalAiAdapter'
 import { createLocalAiService } from '../../../features/ai/service'
-import type { ContractDraft, DemoScenario, DisputeInput } from '../../../features/ai/types'
+import type {
+  AiSource,
+  ContractDraft,
+  DemoScenario,
+  DisputeInput,
+} from '../../../features/ai/types'
 import { ContractCopilotPanel } from '../../../features/contracts/components/ContractCopilotPanel'
 import { DemoScenarioSwitcher } from '../../../features/demo/DemoScenarioSwitcher'
 import { DisputeSummaryPanel } from '../../../features/disputes/components/DisputeSummaryPanel'
 
 export function HomePage() {
   const [scenario, setScenario] = useState<DemoScenario>('design')
-  const aiService = useMemo(() => createLocalAiService(demoLocalAiAdapter), [])
+  const aiSource: AiSource = import.meta.env.VITE_AI_SOURCE === 'qvac' ? 'qvac' : 'demo'
+  const aiService = useMemo(
+    () =>
+      createLocalAiService({
+        source: aiSource,
+        adapters: {
+          demo: demoLocalAiAdapter,
+          qvac: qvacLocalAiAdapter,
+        },
+        fallbackToDemo: false,
+      }),
+    [aiSource],
+  )
 
   const handleImprove = (input: ContractDraft) => aiService.improveContract(input, scenario)
   const handleGenerate = (input: DisputeInput) => aiService.generateDisputeSummary(input, scenario)
@@ -19,6 +37,9 @@ export function HomePage() {
         <h1 className="text-2xl font-semibold">split - QVAC local AI MVP</h1>
         <p className="text-sm text-slate-400">
           Core flow: create contract {'->'} improve with local AI {'->'} dispute {'->'} AI summary.
+        </p>
+        <p className="text-xs text-slate-500">
+          AI source: <span className="font-medium text-slate-300">{aiSource}</span> (fallback: off)
         </p>
       </header>
 
