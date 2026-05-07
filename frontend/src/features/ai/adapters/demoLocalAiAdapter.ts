@@ -1,8 +1,12 @@
 import { scenarioPresets } from '../demoScenarios'
-import type { ContractDraft, DisputeInput, LocalAiAdapter } from '../types'
+import type { ContractCopilotRequestInput, DisputeInput, LocalAiAdapter } from '../types'
 
 export const demoLocalAiAdapter: LocalAiAdapter = {
-  async improveContract(contractId: string, input: ContractDraft, scenario: 'design' | 'logo') {
+  async improveContract(
+    contractId: string,
+    input: ContractCopilotRequestInput,
+    scenario: 'design' | 'logo',
+  ) {
     void contractId
     void input
     return scenarioPresets[scenario].copilotResult

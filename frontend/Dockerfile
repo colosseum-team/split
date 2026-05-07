@@ -16,6 +16,11 @@ COPY frontend/package.json ./frontend/
 RUN if [ -n "$NPM_TOKEN" ]; then \
       printf "@qvac:registry=%s\n//registry.npmjs.org/:_authToken=%s\n" "$QVAC_NPM_REGISTRY" "$NPM_TOKEN" > .npmrc; \
     fi \
+    && npm config set fetch-retries 5 \
+    && npm config set fetch-retry-factor 2 \
+    && npm config set fetch-retry-mintimeout 10000 \
+    && npm config set fetch-retry-maxtimeout 120000 \
+    && npm config set prefer-offline true \
     && npm install --workspaces=false --include-workspace-root \
     && npm install --workspace frontend --include-workspace-root --no-save \
     && rm -f .npmrc

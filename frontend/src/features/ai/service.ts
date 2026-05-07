@@ -1,7 +1,7 @@
 import type {
   AiSource,
   ContractCopilotResult,
-  ContractDraft,
+  ContractCopilotRequestInput,
   DemoScenario,
   DisputeBriefResult,
   DisputeInput,
@@ -44,7 +44,7 @@ export function createLocalAiService(options: LocalAiServiceOptions) {
   return {
     async improveContract(
       contractId: string,
-      input: ContractDraft,
+      input: ContractCopilotRequestInput,
       scenario: DemoScenario,
     ): Promise<ContractCopilotResult> {
       if (scenario === 'off') {

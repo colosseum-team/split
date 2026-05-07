@@ -6,6 +6,12 @@ import { useUserStore } from '@/entities/user'
 import { ContractSummary } from '@/widgets/contract'
 import { SignContractModal } from '@/features/contract/sign'
 import { ConfirmCompletionModal } from '@/features/contract/complete'
+import { DisputeSummaryPanel } from '@/features/disputes/components/DisputeSummaryPanel'
+import { DemoScenarioSwitcher } from '@/features/demo/DemoScenarioSwitcher'
+import { createLocalAiService } from '@/features/ai/service'
+import { demoLocalAiAdapter } from '@/features/ai/adapters/demoLocalAiAdapter'
+import { qvacLocalAiAdapter } from '@/features/ai/adapters/qvacLocalAiAdapter'
+import type { DemoScenario } from '@/features/ai/types'
 import { AuroraBackdrop, Button, ResultModal } from '@/shared/ui'
 
 export const ContractViewPage: FC = () => {
@@ -19,15 +25,36 @@ export const ContractViewPage: FC = () => {
 
   const role = useUserStore((s) => s.role)
   const walletAddress = useUserStore((s) => s.walletAddress)
+  const authToken = useUserStore((s) => s.authToken)
 
   const [isSignOpen, setIsSignOpen] = useState(false)
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
+  const [scenario, setScenario] = useState<DemoScenario>('logo')
   const [resultOpen, setResultOpen] = useState<null | {
     type: 'success' | 'error'
     header: string
     text: string
   }>(null)
   const [isCompleting, setIsCompleting] = useState(false)
+
+  const aiService = useMemo(
+    () =>
+      createLocalAiService({
+        source: ((import.meta.env.VITE_AI_SOURCE as 'demo' | 'qvac' | undefined) ?? 'demo') as
+          | 'demo'
+          | 'qvac',
+        adapters: {
+          demo: demoLocalAiAdapter,
+          qvac: qvacLocalAiAdapter,
+        },
+        qvacApi: {
+          baseUrl:
+            (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:4000',
+          getAuthToken: () => authToken,
+        },
+      }),
+    [authToken],
+  )
 
   const side = useMemo<'customer' | 'performer' | null>(() => {
     if (!contract || !walletAddress) return null
@@ -161,6 +188,14 @@ export const ContractViewPage: FC = () => {
             </div>
           }
         />
+
+        <div className="mt-6 space-y-4">
+          <DemoScenarioSwitcher scenario={scenario} onChange={setScenario} />
+          <DisputeSummaryPanel
+            scenario={scenario}
+            onGenerate={(input) => aiService.generateDisputeSummary(contract.id, input, scenario)}
+          />
+        </div>
       </main>
 
       <SignContractModal

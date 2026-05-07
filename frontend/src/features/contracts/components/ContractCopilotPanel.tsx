@@ -1,10 +1,15 @@
 import { useMemo, useState } from 'react'
-import type { ContractCopilotResult, ContractDraft, DemoScenario } from '../../ai/types'
+import type {
+  ContractCopilotRequestInput,
+  ContractCopilotResult,
+  ContractDraft,
+  DemoScenario,
+} from '../../ai/types'
 import { scenarioPresets } from '../../ai/demoScenarios'
 
 type ContractCopilotPanelProps = {
   scenario: DemoScenario
-  onImprove: (input: ContractDraft) => Promise<ContractCopilotResult>
+  onImprove: (input: ContractCopilotRequestInput) => Promise<ContractCopilotResult>
   sourceText?: string
   onApplyScope?: (value: string) => void
 }

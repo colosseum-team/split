@@ -1,6 +1,6 @@
 import type {
+  ContractCopilotRequestInput,
   ContractCopilotResult,
-  ContractDraft,
   DisputeBriefResult,
   DisputeInput,
 } from '../types'
@@ -58,14 +58,14 @@ export function createBackendQvacAiAdapter(options: BackendQvacAiAdapterOptions)
   return {
     async improveContract(
       contractId: string,
-      input: ContractDraft,
+      input: ContractCopilotRequestInput,
       scenario: 'design' | 'logo',
     ): Promise<ContractCopilotResult> {
-      const payload = await postJson<CopilotRunResponse>(
-        `${baseUrl}/contracts/${contractId}/copilot-run`,
-        { scenario, input },
-        getToken(),
-      )
+      const route =
+        contractId === 'preview'
+          ? `${baseUrl}/ai/copilot-preview`
+          : `${baseUrl}/contracts/${contractId}/copilot-run`
+      const payload = await postJson<CopilotRunResponse>(route, { scenario, input }, getToken())
 
       return {
         ...payload.result,

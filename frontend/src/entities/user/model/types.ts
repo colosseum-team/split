@@ -8,12 +8,15 @@ export interface UserProfile {
 
 export interface UserState {
   walletAddress: string | null
+  authToken: string | null
   role: UserRole | null
   profile: UserProfile
 
   setWalletAddress: (address: string | null) => void
+  setAuthToken: (token: string | null) => void
   setRole: (role: UserRole | null) => void
   setProfile: (profile: Partial<UserProfile>) => void
   clear: () => void
   clearRole: () => void
+  clearAuth: () => void
 }

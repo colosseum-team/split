@@ -1,10 +1,12 @@
 import { scenarioPresets } from '../demoScenarios'
-import type {
-  ContractCopilotResult,
-  ContractDraft,
-  DisputeBriefResult,
-  DisputeInput,
-  LocalAiAdapter,
+import {
+  type ContractCopilotRequestInput,
+  type ContractCopilotResult,
+  type ContractDraft,
+  type DisputeBriefResult,
+  type DisputeInput,
+  type LocalAiAdapter,
+  normalizeContractDraftForInference,
 } from '../types'
 
 type LooseRecord = Record<string, unknown>
@@ -69,6 +71,26 @@ const asNumber = (value: unknown, fallback = 0) => (typeof value === 'number' ? 
 
 const asString = (value: unknown, fallback = '') => (typeof value === 'string' ? value : fallback)
 
+const contractDraftForPrompt = (input: ContractDraft) => {
+  const { scope, deliverables, timeline, paymentTerms } = input
+  const mirrored =
+    scope === deliverables &&
+    deliverables === timeline &&
+    timeline === paymentTerms &&
+    scope.trim().length > 0
+  if (mirrored) {
+    return `The customer provided one technical-assignment draft (the same body is repeated across scope/deliverables/timeline/paymentTerms only to satisfy API shape — treat it as one source). Infer reasonable timeline and payment terms where absent; list true gaps as ambiguities.
+
+Technical assignment:
+${scope}`
+  }
+  return `Contract draft:
+Scope: ${scope}
+Deliverables: ${deliverables}
+Timeline: ${timeline}
+Payment terms: ${paymentTerms}`
+}
+
 const buildContractPrompt = (input: ContractDraft) => `
 You are a senior legal contract copilot for freelance services.
 Return strict JSON only. No markdown fences, no prose outside JSON.
@@ -102,11 +124,7 @@ Strict drafting rules for rewriteSuggestions:
 - If data is missing, make explicit realistic assumptions and include those assumptions in ambiguities.
 - rewriteSuggestions must contain a standalone full text, not fragments.
 
-Contract draft:
-Scope: ${input.scope}
-Deliverables: ${input.deliverables}
-Timeline: ${input.timeline}
-Payment terms: ${input.paymentTerms}
+${contractDraftForPrompt(input)}
 `
 
 const buildDisputePrompt = (input: DisputeInput) => `
@@ -159,12 +177,17 @@ const buildDisputeResult = (
 })
 
 export const qvacLocalAiAdapter: LocalAiAdapter = {
-  async improveContract(contractId: string, input: ContractDraft, scenario: 'design' | 'logo') {
+  async improveContract(
+    contractId: string,
+    input: ContractCopilotRequestInput,
+    scenario: 'design' | 'logo',
+  ) {
     void contractId
+    const draft = normalizeContractDraftForInference(input)
     const llmResponse = await callModuleFn(
       '@qvac/llm-llamacpp',
       ['generate', 'infer', 'run', 'chat'],
-      [buildContractPrompt(input)],
+      [buildContractPrompt(draft)],
     )
     const payload = parseJsonFromText(llmResponse)
     const result = buildCopilotResult(payload, scenario)

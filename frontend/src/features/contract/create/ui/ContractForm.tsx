@@ -6,7 +6,7 @@ import { useUserStore } from '@/entities/user'
 import { createLocalAiService } from '@/features/ai/service'
 import { demoLocalAiAdapter } from '@/features/ai/adapters/demoLocalAiAdapter'
 import { qvacLocalAiAdapter } from '@/features/ai/adapters/qvacLocalAiAdapter'
-import type { DemoScenario, ContractDraft } from '@/features/ai/types'
+import type { DemoScenario } from '@/features/ai/types'
 import { Button, FormWrapper } from '@/shared/ui'
 import { Step1Parties } from './steps/Step1Parties'
 import { Step2TechnicalAssignment } from './steps/Step2TechnicalAssignment'
@@ -122,12 +122,7 @@ export const ContractForm: FC<ContractFormProps> = ({ templateKey }) => {
     setIsImprovingAssignment(true)
     setImproveAssignmentError('')
 
-    const payload: ContractDraft = {
-      scope: technicalAssignment,
-      deliverables: technicalAssignment,
-      timeline: technicalAssignment,
-      paymentTerms: technicalAssignment,
-    }
+    const payload = { technicalAssignment: technicalAssignment.trim() }
 
     try {
       const result = await aiService.improveContract('preview', payload, aiScenario)
