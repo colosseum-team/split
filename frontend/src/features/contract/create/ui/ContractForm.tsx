@@ -1,8 +1,9 @@
-import { type FC, useMemo, useState } from 'react'
+import { type FC, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { type ContractTemplateKey, findTemplate, useContractsStore } from '@/entities/contract'
 import { useUserStore } from '@/entities/user'
+import { structuredTechnicalAssignmentFromCopilot } from '@/features/ai/contractCopilotText'
 import { createLocalAiService } from '@/features/ai/service'
 import { demoLocalAiAdapter } from '@/features/ai/adapters/demoLocalAiAdapter'
 import { qvacLocalAiAdapter } from '@/features/ai/adapters/qvacLocalAiAdapter'
@@ -15,6 +16,10 @@ import { Step4Term } from './steps/Step4Term'
 import { Step5Cost } from './steps/Step5Cost'
 import { Step6Jurisdiction } from './steps/Step6Jurisdiction'
 import type { ContractFormValues } from '../model/types'
+import {
+  deriveSubjectFromTechnicalAssignment,
+  MIN_TA_CHARS_FOR_SYNTHESIS,
+} from '../lib/deriveSubjectFromTechnicalAssignment'
 
 interface ContractFormProps {
   templateKey: ContractTemplateKey
@@ -45,6 +50,15 @@ export const ContractForm: FC<ContractFormProps> = ({ templateKey }) => {
   const [step, setStep] = useState(1)
   const [isImprovingAssignment, setIsImprovingAssignment] = useState(false)
   const [improveAssignmentError, setImproveAssignmentError] = useState('')
+  /** Text that was in the TA field immediately before the last successful Improve. */
+  const [assignmentBeforeAi, setAssignmentBeforeAi] = useState<string | null>(null)
+  /** Last Improve result (frozen); user can toggle between this and `assignmentBeforeAi`. */
+  const [assignmentLastAi, setAssignmentLastAi] = useState<string | null>(null)
+
+  useEffect(() => {
+    setAssignmentBeforeAi(null)
+    setAssignmentLastAi(null)
+  }, [templateKey])
 
   const form = useForm<ContractFormValues>({
     mode: 'onChange',
@@ -93,6 +107,15 @@ export const ContractForm: FC<ContractFormProps> = ({ templateKey }) => {
   )
   const aiScenario: Exclude<DemoScenario, 'off'> = templateKey === 'logo-design' ? 'logo' : 'design'
 
+  const applyTechnicalAssignmentSnapshot = (value: string | null) => {
+    if (!value) return
+    form.setValue('technicalAssignment', value, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    })
+  }
+
   const stepFields: Array<Array<keyof ContractFormValues>> = [
     ['customerFullName', 'customerEmail'],
     ['technicalAssignment'],
@@ -106,6 +129,23 @@ export const ContractForm: FC<ContractFormProps> = ({ templateKey }) => {
     const fields = stepFields[step - 1]
     const ok = await form.trigger(fields)
     if (!ok) return
+
+    if (step === 2) {
+      const ta = form.getValues('technicalAssignment').trim()
+      const subjectState = form.getFieldState('subject', form.formState)
+      const subjectUnused = !subjectState.isDirty
+      if (subjectUnused && ta.length >= MIN_TA_CHARS_FOR_SYNTHESIS) {
+        const derived = deriveSubjectFromTechnicalAssignment(ta)
+        if (derived.length >= 10) {
+          form.setValue('subject', derived, {
+            shouldDirty: false,
+            shouldTouch: false,
+            shouldValidate: true,
+          })
+        }
+      }
+    }
+
     setStep((prev) => Math.min(prev + 1, TOTAL_STEPS))
   }
 
@@ -122,15 +162,18 @@ export const ContractForm: FC<ContractFormProps> = ({ templateKey }) => {
     setIsImprovingAssignment(true)
     setImproveAssignmentError('')
 
-    const payload = { technicalAssignment: technicalAssignment.trim() }
+    const before = technicalAssignment.trim()
+    const payload = { technicalAssignment: before }
 
     try {
       const result = await aiService.improveContract('preview', payload, aiScenario)
-      const nextText = result.rewriteSuggestions[0]?.trim()
+      const nextText = structuredTechnicalAssignmentFromCopilot(result).trim()
       if (!nextText) {
         setImproveAssignmentError('QVAC did not return an improved version. Try again.')
         return
       }
+      setAssignmentBeforeAi(before)
+      setAssignmentLastAi(nextText)
       form.setValue('technicalAssignment', nextText, {
         shouldDirty: true,
         shouldTouch: true,
@@ -223,6 +266,29 @@ export const ContractForm: FC<ContractFormProps> = ({ templateKey }) => {
       >
         {step === 1 && <Step1Parties form={form} />}
         {step === 2 && <Step2TechnicalAssignment form={form} />}
+        {step === 2 && assignmentBeforeAi !== null && assignmentLastAi !== null && (
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-(--color-border-subtle) bg-(--color-surface-overlay) px-3 py-2">
+            <span className="text-[13px] font-medium text-(--color-text-secondary) shrink-0">
+              Version:
+            </span>
+            <Button
+              variant="secondary"
+              size="sm"
+              type="button"
+              onClick={() => applyTechnicalAssignmentSnapshot(assignmentBeforeAi)}
+            >
+              Before QVAC
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              type="button"
+              onClick={() => applyTechnicalAssignmentSnapshot(assignmentLastAi)}
+            >
+              QVAC version
+            </Button>
+          </div>
+        )}
         {step === 2 && isTechnicalAssignmentReadyForAi && (
           <div className="flex flex-col gap-2">
             <Button

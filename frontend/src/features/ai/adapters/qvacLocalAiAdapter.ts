@@ -71,6 +71,26 @@ const asNumber = (value: unknown, fallback = 0) => (typeof value === 'number' ? 
 
 const asString = (value: unknown, fallback = '') => (typeof value === 'string' ? value : fallback)
 
+const rewritePiecesFromPayload = (payload: LooseRecord): string[] => {
+  const camel = asStringArray(payload.rewriteSuggestions)
+  const snake = asStringArray(payload.rewrite_suggestions)
+  const parts = (camel.length ? camel : snake).map((s) => s.trim()).filter(Boolean)
+  if (parts.length <= 1) return parts
+  return [parts.join('\n\n')]
+}
+
+const acceptanceCriteriaFromPayload = (payload: LooseRecord): string[] => {
+  const camel = asStringArray(payload.acceptanceCriteria)
+  const snake = asStringArray(payload.acceptance_criteria)
+  return camel.length ? camel : snake
+}
+
+const riskFactorsFromPayload = (payload: LooseRecord): string[] => {
+  const camel = asStringArray(payload.riskFactors)
+  const snake = asStringArray(payload.risk_factors)
+  return camel.length ? camel : snake
+}
+
 const contractDraftForPrompt = (input: ContractDraft) => {
   const { scope, deliverables, timeline, paymentTerms } = input
   const mirrored =
@@ -122,7 +142,14 @@ Strict drafting rules for rewriteSuggestions:
 - Use concise, testable statements and measurable thresholds.
 - Do not output placeholders like TBD or "...".
 - If data is missing, make explicit realistic assumptions and include those assumptions in ambiguities.
-- rewriteSuggestions must contain a standalone full text, not fragments.
+- rewriteSuggestions must contain ONE string only (array length 1), that entire technical assignment template as plain readable text inserted into ONE textarea.
+
+Formatting INSIDE that single rewriteSuggestions string (required so the form shows correct layout):
+- Use plain UTF-8 text - no Markdown # headings.
+- Begin with literal first line exactly: "1. Project goal" - then newline - then paragraphs for goal.
+- Use a newline before major numbered headings: "2. Scope of work", "3. Deliverables", "4. Acceptance criteria", "5. Timeline (indicative, can be adjusted in writing)", "6. Customer obligations", "7. Performer obligations", "8. Acceptance and warranty".
+- Under section 2, include sub-headings exactly "2.1. Discovery and analysis", "2.2. UI/UX design", "2.3. Front-end implementation", "2.4. Content", "2.5. Out of scope (unless agreed separately)" each on own line followed by hyphen bullet lines "-" for details.
+- Separate sections with blank lines where it improves readability.
 
 ${contractDraftForPrompt(input)}
 `
@@ -154,10 +181,12 @@ const buildCopilotResult = (
   scenario: 'design' | 'logo',
 ): ContractCopilotResult => ({
   ambiguities: asStringArray(payload.ambiguities),
-  rewriteSuggestions: asStringArray(payload.rewriteSuggestions),
-  acceptanceCriteria: asStringArray(payload.acceptanceCriteria),
-  riskScore: asNumber(payload.riskScore),
-  riskFactors: asStringArray(payload.riskFactors),
+  rewriteSuggestions: rewritePiecesFromPayload(payload),
+  acceptanceCriteria: acceptanceCriteriaFromPayload(payload),
+  riskScore: asNumber(
+    typeof payload.riskScore === 'number' ? payload.riskScore : payload.risk_score,
+  ),
+  riskFactors: riskFactorsFromPayload(payload),
   metadata: { source: 'local-qvac', scenario, model: 'qvac-llamacpp' },
 })
 
