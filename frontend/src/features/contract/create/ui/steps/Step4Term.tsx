@@ -30,7 +30,7 @@ export const Step4Term: FC<Step4TermProps> = ({ form }) => {
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-[13px] font-medium text-[var(--color-text-light-gray)]">
+      <p className="text-[13px] font-medium text-(--color-text-muted)">
         When does the work start and when must it be completed?
       </p>
 
@@ -49,7 +49,7 @@ export const Step4Term: FC<Step4TermProps> = ({ form }) => {
               onChange={(v) => field.onChange(toIsoOrNull(v))}
             />
             {fieldState.error && (
-              <p className="mt-2 text-[14px] text-[var(--color-text-warning)]">Pick a start date</p>
+              <p className="mt-2 text-[14px] text-(--color-state-danger)">Pick a start date</p>
             )}
           </div>
         )}
@@ -70,7 +70,7 @@ export const Step4Term: FC<Step4TermProps> = ({ form }) => {
               onChange={(v) => field.onChange(toIsoOrNull(v))}
             />
             {fieldState.error && (
-              <p className="mt-2 text-[14px] text-[var(--color-text-warning)]">Pick an end date</p>
+              <p className="mt-2 text-[14px] text-(--color-state-danger)">Pick an end date</p>
             )}
           </div>
         )}

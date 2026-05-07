@@ -134,13 +134,11 @@ export const ContractForm: FC<ContractFormProps> = ({ templateKey }) => {
   if (!template) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center gap-2">
-        <h2 className="text-[20px] font-bold text-[var(--color-text-dark-blue)]">
-          Template not found
-        </h2>
+        <h2 className="text-h2 text-(--color-text-primary)">Template not found</h2>
         <button
           type="button"
           onClick={() => navigate('/contracts/new')}
-          className="text-[14px] font-bold text-[var(--color-text-purple)] cursor-pointer hover:opacity-80"
+          className="text-[14px] font-bold text-(--color-brand) cursor-pointer hover:opacity-80"
         >
           Back to templates
         </button>

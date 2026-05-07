@@ -120,7 +120,7 @@ export const BottomModal = forwardRef<BottomModalHandle, BottomModalProps>(
         aria-modal="true"
       >
         <div
-          className={`bottom-modal-panel w-full ${desktopMaxWidthClass} min-[500px]:w-full min-[500px]:mx-auto bg-(--color-bg-block) rounded-t-[20px] min-[500px]:rounded-[20px] border-t border-l border-r min-[500px]:border border-(--color-border) flex flex-col ${heightClass} ${desktopHeightClass} ${
+          className={`bottom-modal-panel w-full ${desktopMaxWidthClass} min-[500px]:w-full min-[500px]:mx-auto bg-(--color-surface-raised) rounded-t-[var(--radius-xl)] min-[500px]:rounded-[var(--radius-xl)] border-t border-l border-r min-[500px]:border border-(--color-border-subtle) shadow-[var(--shadow-md)] flex flex-col ${heightClass} ${desktopHeightClass} ${
             isClosing ? 'closing' : ''
           } ${className}`}
           style={panelStyle}
@@ -131,23 +131,23 @@ export const BottomModal = forwardRef<BottomModalHandle, BottomModalProps>(
             onClick={handleHandleClick}
             className="flex justify-center p-3 cursor-pointer min-[500px]:hidden"
           >
-            <div className="w-12 h-1 bg-(--color-border) rounded-full" />
+            <div className="w-12 h-1 bg-(--color-border-default) rounded-full" />
           </div>
 
           {headerTitle && (
-            <div className="flex items-center justify-between px-6 py-4 border-b border-(--color-border)">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-(--color-border-subtle)">
               <div className="flex items-center gap-3">
                 {headerIcon && (
-                  <div className="shrink-0 bg-(--color-svg-bg) rounded-[12px] p-2">
-                    <div className="text-(--color-text-purple)">{headerIcon}</div>
+                  <div className="shrink-0 bg-(--color-brand-accent) rounded-[var(--radius-md)] p-2">
+                    <div className="text-(--color-brand)">{headerIcon}</div>
                   </div>
                 )}
-                <h3 className="text-(--color-text-black) text-[18px] font-medium">{headerTitle}</h3>
+                <h3 className="text-h3 text-(--color-text-primary)">{headerTitle}</h3>
               </div>
               <button
                 type="button"
                 onClick={handleClose}
-                className="ml-auto text-(--color-text-primary) hover:text-(--color-text-black) transition-colors cursor-pointer"
+                className="ml-auto text-(--color-text-secondary) hover:text-(--color-text-primary) transition-colors cursor-pointer"
                 aria-label="Close"
               >
                 <XMarkIcon className="h-[20px] w-auto" />

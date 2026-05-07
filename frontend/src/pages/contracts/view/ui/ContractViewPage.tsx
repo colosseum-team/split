@@ -7,7 +7,7 @@ import { Header, Layout } from '@/widgets/layout'
 import { ContractSummary } from '@/widgets/contract'
 import { SignContractModal } from '@/features/contract/sign'
 import { ConfirmCompletionModal } from '@/features/contract/complete'
-import { ResultModal } from '@/shared/ui'
+import { Button, ResultModal } from '@/shared/ui'
 
 export const ContractViewPage: FC = () => {
   const navigate = useNavigate()
@@ -43,17 +43,15 @@ export const ContractViewPage: FC = () => {
           <button
             type="button"
             onClick={() => navigate('/home')}
-            className="flex items-center gap-1 text-[14px] font-bold text-(--color-text-start-page) cursor-pointer hover:opacity-80"
+            className="flex items-center gap-1 text-[14px] font-bold text-(--color-text-secondary) cursor-pointer hover:opacity-80"
           >
             <ChevronLeftIcon className="w-5 h-5" />
             Back
           </button>
         </Header>
         <div className="flex flex-col items-center justify-center py-16 gap-2 text-center">
-          <h2 className="text-[20px] font-bold text-(--color-text-dark-blue)">
-            Contract not found
-          </h2>
-          <p className="text-[14px] font-medium text-(--color-text-start-page)">
+          <h2 className="text-h2 text-(--color-text-primary)">Contract not found</h2>
+          <p className="text-body text-(--color-text-secondary)">
             It might have been removed or the link is invalid.
           </p>
         </div>
@@ -114,7 +112,7 @@ export const ContractViewPage: FC = () => {
         <button
           type="button"
           onClick={() => navigate('/home')}
-          className="flex items-center gap-1 text-[14px] font-bold text-(--color-text-start-page) cursor-pointer hover:opacity-80"
+          className="flex items-center gap-1 text-[14px] font-bold text-(--color-text-secondary) cursor-pointer hover:opacity-80"
           aria-label="Back"
         >
           <ChevronLeftIcon className="w-5 h-5" />
@@ -127,24 +125,21 @@ export const ContractViewPage: FC = () => {
         actions={
           <div className="flex flex-col md:flex-row gap-3 flex-1">
             {canSign && (
-              <button
-                type="button"
-                onClick={() => setIsSignOpen(true)}
-                className="flex-1 h-[48px] rounded-[10px] bg-(--color-button) border border-(--color-button-border) text-[14px] font-bold text-(--color-text-purple) flex items-center justify-center gap-2 cursor-pointer hover:opacity-90 transition-opacity"
-              >
+              <Button onClick={() => setIsSignOpen(true)} size="lg" className="flex-1">
                 <PencilSquareIcon className="w-5 h-5" />
                 Sign contract
-              </button>
+              </Button>
             )}
             {canConfirmCompletion && (
-              <button
-                type="button"
+              <Button
                 onClick={() => setIsConfirmOpen(true)}
-                className="flex-1 h-[48px] rounded-[10px] bg-(--color-modal-success-icon-bg) border border-(--color-modal-success-icon) text-[14px] font-bold text-(--color-modal-success-icon) flex items-center justify-center gap-2 cursor-pointer hover:opacity-90 transition-opacity"
+                variant="success"
+                size="lg"
+                className="flex-1"
               >
                 <CheckBadgeIcon className="w-5 h-5" />
                 Confirm work completion
-              </button>
+              </Button>
             )}
           </div>
         }

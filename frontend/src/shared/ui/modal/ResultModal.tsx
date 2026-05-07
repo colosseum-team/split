@@ -1,5 +1,6 @@
 import type { FC } from 'react'
 import { CheckIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { Button } from '../Button'
 import { BottomModal } from './BottomModal'
 
 interface ResultModalProps {
@@ -29,10 +30,10 @@ export const ResultModal: FC<ResultModalProps> = ({
   const displayText = text || defaultText
 
   const iconBgColor =
-    type === 'success' ? 'bg-(--color-modal-success-icon-bg)' : 'bg-(--color-modal-error-icon-bg)'
+    type === 'success' ? 'bg-(--color-state-success-soft)' : 'bg-(--color-state-danger-soft)'
 
   const iconColor =
-    type === 'success' ? 'text-(--color-modal-success-icon)' : 'text-(--color-modal-error-icon)'
+    type === 'success' ? 'text-(--color-state-success)' : 'text-(--color-state-danger)'
 
   return (
     <BottomModal isOpen={isOpen} onClose={onClose} height="adaptive" maxWidth="420">
@@ -48,21 +49,15 @@ export const ResultModal: FC<ResultModalProps> = ({
         </div>
 
         <div className="flex flex-col gap-1">
-          <h2 className="text-(--color-text-dark-blue) md:text-[28px] text-[20px] font-bold text-center">
-            {displayHeader}
-          </h2>
-          <p className="text-(--color-modal-text) md:text-[18px] text-[14px] font-medium text-center">
+          <h2 className="text-h1 text-(--color-text-primary) text-center">{displayHeader}</h2>
+          <p className="text-body md:text-[16px] text-(--color-text-secondary) text-center">
             {displayText}
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={onClose}
-          className="w-full h-[42px] bg-(--color-button) border border-(--color-button-border) text-[14px] font-bold text-center text-(--color-text-purple) hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed rounded-[6px] cursor-pointer"
-        >
+        <Button onClick={onClose} className="w-full">
           {buttonText}
-        </button>
+        </Button>
       </div>
     </BottomModal>
   )

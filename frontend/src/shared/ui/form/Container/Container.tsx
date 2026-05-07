@@ -1,4 +1,5 @@
 import type { FC, HTMLAttributes, ReactNode } from 'react'
+import { Button } from '../../Button'
 
 interface ContainerProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode
@@ -32,7 +33,7 @@ export const Container: FC<ContainerProps> = ({
   className = '',
   ...props
 }) => {
-  const containerClasses = `w-full border border-[var(--color-border)] rounded-[6px] p-6 flex flex-col bg-[var(--color-bg-block)] ${className}`
+  const containerClasses = `w-full border border-(--color-border-subtle) rounded-[var(--radius-lg)] p-6 flex flex-col bg-(--color-surface-raised) shadow-[var(--shadow-sm)] ${className}`
 
   const stepsArray = Array.from({ length: totalSteps }, (_, index) => {
     if (index < currentStep) return 'passed'
@@ -44,13 +45,9 @@ export const Container: FC<ContainerProps> = ({
     <div className={containerClasses} {...props}>
       {(title || steps) && (
         <div className="flex justify-between items-start mb-6">
-          {title && (
-            <h2 className="text-[18px] font-medium text-[var(--color-text-black)]">{title}</h2>
-          )}
+          {title && <h2 className="text-h3 text-(--color-text-primary)">{title}</h2>}
           {steps && (
-            <span className="text-[14px] font-medium text-[var(--color-text-secondary)]">
-              {steps}
-            </span>
+            <span className="text-[14px] font-medium text-(--color-text-muted)">{steps}</span>
           )}
         </div>
       )}
@@ -62,10 +59,10 @@ export const Container: FC<ContainerProps> = ({
               key={index}
               className={`h-[3px] rounded flex-1 ${
                 status === 'passed'
-                  ? 'bg-[var(--color-step-passed)]'
+                  ? 'bg-(--color-brand-accent)'
                   : status === 'active'
-                    ? 'bg-[var(--color-step-active)]'
-                    : 'bg-[var(--color-step-inactive)]'
+                    ? 'bg-(--color-brand)'
+                    : 'bg-(--color-border-default)'
               }`}
             />
           ))}
@@ -77,23 +74,14 @@ export const Container: FC<ContainerProps> = ({
       {(showBackButton || showNextButton) && (
         <div className="flex gap-2 mt-6 pt-4">
           {showBackButton && (
-            <button
-              type="button"
-              onClick={onBack}
-              className="flex-1 h-[42px] text-[16px] font-bold text-[var(--color-text-purple)] border-none bg-transparent hover:opacity-80 transition-opacity cursor-pointer"
-            >
+            <Button onClick={onBack} variant="ghost" className="flex-1">
               {backButtonText}
-            </button>
+            </Button>
           )}
           {showNextButton && (
-            <button
-              type="button"
-              onClick={onNext}
-              disabled={isNextDisabled}
-              className="flex-1 h-[42px] text-[16px] font-bold text-[var(--color-text-purple)] bg-[var(--color-button)] border border-[var(--color-button-border)] rounded-[2px] hover:opacity-80 transition-opacity disabled:opacity-50 cursor-pointer"
-            >
+            <Button onClick={onNext} disabled={isNextDisabled} className="flex-1">
               {nextButtonText}
-            </button>
+            </Button>
           )}
         </div>
       )}

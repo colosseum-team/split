@@ -10,6 +10,7 @@ import {
 import { CONTRACT_TEMPLATES, type ContractTemplateKey } from '@/entities/contract'
 import { useUserStore } from '@/entities/user'
 import { Header, Layout } from '@/widgets/layout'
+import { Card } from '@/shared/ui'
 
 const TEMPLATE_ICON: Record<ContractTemplateKey, typeof GlobeAltIcon> = {
   'landing-development': GlobeAltIcon,
@@ -36,7 +37,7 @@ export const SelectTemplatePage: FC = () => {
         <button
           type="button"
           onClick={() => navigate('/home')}
-          className="flex items-center gap-1 text-[14px] font-bold text-(--color-text-start-page) hover:opacity-80 transition-opacity cursor-pointer"
+          className="flex items-center gap-1 text-[14px] font-bold text-(--color-text-secondary) hover:opacity-80 transition-opacity cursor-pointer"
           aria-label="Back"
         >
           <ChevronLeftIcon className="w-5 h-5" />
@@ -45,10 +46,8 @@ export const SelectTemplatePage: FC = () => {
       </Header>
 
       <div className="flex flex-col gap-2 mb-6">
-        <h1 className="md:text-[24px] text-[20px] font-bold text-(--color-text-dark-blue)">
-          New contract
-        </h1>
-        <p className="md:text-[16px] text-[14px] font-medium text-(--color-text-start-page)">
+        <h1 className="text-h1 text-(--color-text-primary)">New contract</h1>
+        <p className="text-body md:text-[16px] text-(--color-text-secondary)">
           Pick a starting template. The technical assignment is pre-filled — you can edit every
           detail in the next steps.
         </p>
@@ -58,27 +57,25 @@ export const SelectTemplatePage: FC = () => {
         {CONTRACT_TEMPLATES.map((template) => {
           const Icon = TEMPLATE_ICON[template.key]
           return (
-            <button
+            <Card
+              as="button"
               key={template.key}
               type="button"
               onClick={() => handleSelect(template.key)}
-              className="text-left p-5 rounded-[16px] bg-(--color-bg-secondary) border border-(--color-border-contract-card) hover:border-(--color-input-active) transition-colors cursor-pointer flex flex-col gap-3"
+              interactive
+              className="text-left flex flex-col gap-3"
             >
               <div className="flex items-center justify-between">
-                <div className="w-12 h-12 rounded-[12px] bg-(--color-button) flex items-center justify-center">
-                  <Icon className="w-6 h-6 text-(--color-text-purple)" />
+                <div className="w-12 h-12 rounded-[var(--radius-md)] bg-(--color-brand-accent) flex items-center justify-center">
+                  <Icon className="w-6 h-6 text-(--color-brand)" />
                 </div>
-                <ChevronRightIcon className="w-5 h-5 text-(--color-text-light-gray)" />
+                <ChevronRightIcon className="w-5 h-5 text-(--color-text-muted)" />
               </div>
               <div className="flex flex-col gap-1">
-                <div className="text-[18px] font-bold text-(--color-text-dark-blue)">
-                  {template.title}
-                </div>
-                <p className="text-[14px] font-medium text-(--color-text-start-page) leading-snug">
-                  {template.description}
-                </p>
+                <div className="text-h3 text-(--color-text-primary)">{template.title}</div>
+                <p className="text-body text-(--color-text-secondary)">{template.description}</p>
               </div>
-            </button>
+            </Card>
           )
         })}
       </div>

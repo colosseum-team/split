@@ -25,7 +25,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
       requiredErrorPosition = 'bottom',
       showRequiredError = false,
       className = '',
-      activeColor = 'var(--color-tab-border)',
+      activeColor = 'var(--color-brand)',
       fillHeight = false,
       minHeight,
       onBlur,
@@ -57,17 +57,17 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     let textareaStateClasses: string
     if (error && hasInteracted) {
       textareaStateClasses =
-        'bg-[var(--color-bg-secondary)] border-2 border-[var(--color-input-warning)] text-[var(--color-text-black)]'
+        'bg-(--color-surface-raised) border-2 border-(--color-state-danger) text-(--color-text-primary)'
     } else if (isActive) {
       textareaStateClasses =
-        'bg-[var(--color-input-bg)] border-2 text-[var(--color-text-black)] placeholder:font-medium placeholder:text-[14px] placeholder:text-[var(--color-input-text-placeholder)]'
+        'bg-(--color-surface-muted) border-2 text-(--color-text-primary) placeholder:font-medium placeholder:text-[14px] placeholder:text-(--color-text-muted)'
       borderStyle.borderColor = activeColor
     } else if (isFilled) {
       textareaStateClasses =
-        'bg-[var(--color-input-bg)] border-2 border-[var(--color-border-tertiary)] text-[var(--color-text-black)]'
+        'bg-(--color-surface-muted) border-2 border-(--color-border-subtle) text-(--color-text-primary)'
     } else {
       textareaStateClasses =
-        'bg-[var(--color-input-bg)] border-2 border-[var(--color-border-tertiary)] placeholder:font-medium placeholder:text-[14px] placeholder:text-[var(--color-input-text-placeholder)]'
+        'bg-(--color-surface-muted) border-2 border-(--color-border-subtle) placeholder:font-medium placeholder:text-[14px] placeholder:text-(--color-text-muted)'
     }
 
     const heightClass = fillHeight ? 'h-full flex-1' : ''
@@ -76,7 +76,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
       borderStyle.minHeight = computedMinHeight
     }
 
-    const textareaClasses = `w-full rounded-[16px] px-3 py-2 focus:outline-none transition-colors ${
+    const textareaClasses = `w-full rounded-[var(--radius-lg)] px-3 py-2 focus:outline-none transition-colors ${
       fillHeight ? 'resize-none' : resizeClasses[resize]
     } ${heightClass} ${textareaStateClasses} ${className}`
 
@@ -103,15 +103,15 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         {label && (
           <label
             htmlFor={textareaId}
-            className="block text-[14px] font-bold text-[var(--color-form-label-text)] mb-2"
+            className="block text-[14px] font-bold text-(--color-text-primary) mb-2"
           >
             {label}
-            {props.required && <span className="text-[var(--color-text-warning)] ml-1">*</span>}
+            {props.required && <span className="text-(--color-state-danger) ml-1">*</span>}
           </label>
         )}
 
         {shouldShowRequiredError && requiredErrorPosition === 'top-right' && (
-          <div className="absolute top-0 right-0 text-[12px] text-[var(--color-text-warning)]">
+          <div className="absolute top-0 right-0 text-[12px] text-(--color-state-danger)">
             Required
           </div>
         )}
@@ -128,17 +128,15 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         />
 
         {shouldShowRequiredError && requiredErrorPosition === 'bottom' && (
-          <p className="mt-1 text-[14px] text-[var(--color-text-warning)]">
+          <p className="mt-1 text-[14px] text-(--color-state-danger)">
             This field cannot be left blank
           </p>
         )}
 
-        {shouldShowError && (
-          <p className="mt-1 text-sm text-[var(--color-text-warning)]">{error}</p>
-        )}
+        {shouldShowError && <p className="mt-1 text-sm text-(--color-state-danger)">{error}</p>}
 
         {helperText && !error && !shouldShowRequiredError && (
-          <p className="mt-1 text-sm text-[var(--color-text-primary)]">{helperText}</p>
+          <p className="mt-1 text-sm text-(--color-text-secondary)">{helperText}</p>
         )}
       </div>
     )

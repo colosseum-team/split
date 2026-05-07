@@ -19,7 +19,7 @@ export const Step5Cost: FC<Step5CostProps> = ({ form }) => {
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-[13px] font-medium text-[var(--color-text-light-gray)]">
+      <p className="text-[13px] font-medium text-(--color-text-muted)">
         Total amount that will be released to the performer once the customer confirms the work is
         done.
       </p>

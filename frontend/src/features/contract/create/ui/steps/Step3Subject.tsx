@@ -13,7 +13,7 @@ export const Step3Subject: FC<Step3SubjectProps> = ({ form }) => {
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-[13px] font-medium text-[var(--color-text-light-gray)]">
+      <p className="text-[13px] font-medium text-(--color-text-muted)">
         Short legal description of the deliverable. Pre-filled from the selected template — adjust
         if needed.
       </p>

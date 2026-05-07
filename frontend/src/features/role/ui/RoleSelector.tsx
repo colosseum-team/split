@@ -30,41 +30,51 @@ const ROLES: RoleOption[] = [
   },
 ]
 
+const ROLE_TONE: Record<UserRole, { border: string; bg: string; icon: string; text: string }> = {
+  customer: {
+    border: 'border-(--color-role-customer-border)',
+    bg: 'bg-(--color-role-customer-soft)',
+    icon: 'bg-(--color-role-customer)',
+    text: 'text-(--color-role-customer-text)',
+  },
+  performer: {
+    border: 'border-(--color-role-performer-border)',
+    bg: 'bg-(--color-role-performer-soft)',
+    icon: 'bg-(--color-role-performer)',
+    text: 'text-(--color-role-performer-text)',
+  },
+}
+
 export const RoleSelector: FC<RoleSelectorProps> = ({ value, onChange, className = '' }) => {
   return (
     <div className={`flex flex-col gap-3 w-full ${className}`}>
       {ROLES.map(({ value: optionValue, title, description, Icon }) => {
         const isActive = value === optionValue
+        const tone = ROLE_TONE[optionValue]
         return (
           <button
             key={optionValue}
             type="button"
             onClick={() => onChange(optionValue)}
-            className={`p-5 w-full rounded-[14px] cursor-pointer flex flex-row gap-4 items-start text-left transition-all border-2 ${
+            className={`p-5 w-full rounded-[var(--radius-lg)] cursor-pointer flex flex-row gap-4 items-start text-left transition-all border shadow-[var(--shadow-sm)] ${
               isActive
-                ? 'border-(--color-input-active) bg-(--color-bg-secondary)'
-                : 'border-(--color-button-border-start-page) bg-(--color-button-start-page) md:bg-(--color-bg-secondary) hover:opacity-90'
+                ? `${tone.border} ${tone.bg}`
+                : 'border-(--color-border-subtle) bg-(--color-surface-raised) hover:border-(--color-border-default) hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]'
             }`}
             aria-pressed={isActive}
           >
             <div
-              className={`w-10 h-10 rounded-[10px] flex items-center justify-center shrink-0 ${
-                isActive ? 'bg-(--color-button)' : 'bg-(--color-form-icon-bg)'
+              className={`w-10 h-10 rounded-[var(--radius-md)] flex items-center justify-center shrink-0 ${
+                isActive ? tone.icon : 'bg-(--color-surface-muted)'
               }`}
             >
               <Icon
-                className={`w-5 h-5 ${
-                  isActive ? 'text-(--color-text-purple)' : 'text-(--color-text-start-page)'
-                }`}
+                className={`w-5 h-5 ${isActive ? tone.text : 'text-(--color-text-secondary)'}`}
               />
             </div>
             <div className="flex flex-col gap-1 flex-1">
-              <span className="md:text-[16px] text-[15px] font-bold text-(--color-text-dark-blue)">
-                {title}
-              </span>
-              <span className="md:text-[14px] text-[13px] font-medium text-(--color-text-start-page) leading-snug">
-                {description}
-              </span>
+              <span className="text-h3 text-(--color-text-primary)">{title}</span>
+              <span className="text-body text-(--color-text-secondary)">{description}</span>
             </div>
           </button>
         )

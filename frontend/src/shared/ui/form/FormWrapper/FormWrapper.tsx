@@ -1,6 +1,8 @@
 import type { FC, ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronLeftIcon } from '@heroicons/react/24/outline'
+import { Button } from '../../Button'
+import { Card } from '../../Card'
 
 interface FormWrapperProps {
   title: string
@@ -64,7 +66,7 @@ export const FormWrapper: FC<FormWrapperProps> = ({
   })
 
   return (
-    <div className="w-full rounded-[20px] max-w-[400px] md:max-w-[620px] mx-auto md:p-8 bg-[var(--color-bg)] md:bg-[var(--color-wrapper-container-bg)] md:border border-[var(--color-border-contract-card)] flex flex-col">
+    <Card padding="lg" className="w-full max-w-[400px] md:max-w-[620px] mx-auto flex flex-col">
       <div className="w-full max-w-[400px] md:max-w-full">
         <div className="flex items-center mb-6">
           <button
@@ -73,18 +75,16 @@ export const FormWrapper: FC<FormWrapperProps> = ({
             className="flex items-center cursor-pointer hover:opacity-80 transition-opacity"
             aria-label="Back"
           >
-            <ChevronLeftIcon className="h-[20px] w-auto text-[var(--color-text-start-page)]" />
+            <ChevronLeftIcon className="h-[20px] w-auto text-(--color-text-secondary)" />
           </button>
         </div>
 
         <div className="text-center mb-6">
-          <h1 className="md:text-[22px] text-[20px] font-bold text-[var(--color-text-dark-blue)]">
-            {title}
-          </h1>
+          <h1 className="text-h2 text-(--color-text-primary)">{title}</h1>
         </div>
 
         <div className="md:mb-6 mb-4">
-          <p className="text-[14px] font-medium text-[var(--color-form-steps-text)] mb-1">
+          <p className="text-[14px] font-medium text-(--color-text-muted) mb-1">
             {passedStepsAmount} of {totalSteps} steps completed
           </p>
           <div className="flex gap-1 mt-1">
@@ -93,8 +93,8 @@ export const FormWrapper: FC<FormWrapperProps> = ({
                 key={index}
                 className={`h-[6px] rounded-[50px] flex-1 ${
                   status === 'passed' || status === 'current'
-                    ? 'bg-[var(--color-step-passed)]'
-                    : 'bg-[var(--color-step-inactive)]'
+                    ? 'bg-(--color-brand-accent)'
+                    : 'bg-(--color-border-default)'
                 }`}
               />
             ))}
@@ -104,20 +104,11 @@ export const FormWrapper: FC<FormWrapperProps> = ({
         <div className="mb-6">{children}</div>
 
         <div className="w-full">
-          <button
-            type="button"
-            onClick={handleNext}
-            disabled={isNextDisabled}
-            className={`w-full rounded-[6px] h-[42px] text-[14px] font-bold transition-opacity ${
-              isNextDisabled
-                ? 'bg-[var(--color-form-btn-disabled)] text-[var(--color-form-btn-disabled-text)] cursor-not-allowed opacity-50'
-                : 'bg-[var(--color-button)] text-[var(--color-continue-button-text)] border border-[var(--color-button-border)] hover:opacity-80 cursor-pointer'
-            }`}
-          >
+          <Button onClick={handleNext} disabled={isNextDisabled} className="w-full">
             {buttonText}
-          </button>
+          </Button>
         </div>
       </div>
-    </div>
+    </Card>
   )
 }

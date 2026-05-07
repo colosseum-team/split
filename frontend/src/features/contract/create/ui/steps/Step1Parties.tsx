@@ -14,7 +14,7 @@ export const Step1Parties: FC<Step1PartiesProps> = ({ form }) => {
   return (
     <div className="flex flex-col gap-6">
       <section className="flex flex-col gap-3">
-        <h3 className="text-[15px] font-bold text-[var(--color-text-dark-blue)]">Customer (you)</h3>
+        <h3 className="text-h3 text-(--color-text-primary)">Customer (you)</h3>
 
         <Controller
           name="customerFullName"
@@ -59,8 +59,8 @@ export const Step1Parties: FC<Step1PartiesProps> = ({ form }) => {
 
       <section className="flex flex-col gap-3">
         <div>
-          <h3 className="text-[15px] font-bold text-[var(--color-text-dark-blue)]">Performer</h3>
-          <p className="text-[13px] font-medium text-[var(--color-text-light-gray)] mt-1">
+          <h3 className="text-h3 text-(--color-text-primary)">Performer</h3>
+          <p className="text-[13px] font-medium text-(--color-text-muted) mt-1">
             Pre-filled performer details. For the MVP these fields are read-only.
           </p>
         </div>

@@ -196,17 +196,17 @@ export const Calendar: FC<CalendarProps> = ({
   const year = currentDate.getFullYear()
 
   return (
-    <div className="rounded-[16px] bg-[var(--color-input-bg)] border border-[var(--color-input-border)] p-4">
+    <div className="rounded-[var(--radius-lg)] bg-(--color-surface-raised) border border-(--color-border-subtle) p-4 shadow-[var(--shadow-md)]">
       <div className="flex items-center justify-between mb-3">
         <button
           type="button"
           onClick={goToPreviousMonth}
-          className="text-[var(--color-text-calendar-grey)] text-[18px] hover:opacity-70 transition-opacity cursor-pointer"
+          className="text-(--color-text-primary) text-[18px] hover:opacity-70 transition-opacity cursor-pointer"
         >
           ‹
         </button>
         <div
-          className="text-[18px] font-bold text-[var(--color-text-calendar-grey)]"
+          className="text-[18px] font-bold text-(--color-text-primary) tracking-tight"
           style={{ fontFamily: 'Gilroy' }}
         >
           {monthName} {year}
@@ -214,19 +214,19 @@ export const Calendar: FC<CalendarProps> = ({
         <button
           type="button"
           onClick={goToNextMonth}
-          className="text-[var(--color-text-calendar-grey)] text-[18px] hover:opacity-70 transition-opacity cursor-pointer"
+          className="text-(--color-text-primary) text-[18px] hover:opacity-70 transition-opacity cursor-pointer"
         >
           ›
         </button>
       </div>
 
-      <div className="border-t border-[var(--color-calendar-border)] my-3"></div>
+      <div className="border-t border-(--color-border-subtle) my-3"></div>
 
       <div className="grid grid-cols-7 gap-3 mb-3">
         {WEEKDAYS.map((day) => (
           <div
             key={day}
-            className="w-[30px] h-[30px] flex items-center justify-center text-[var(--color-calendar-weekday-text)] text-[18px] font-medium"
+            className="w-[30px] h-[30px] flex items-center justify-center text-(--color-text-muted) text-[18px] font-medium"
           >
             {day}
           </div>
@@ -244,25 +244,25 @@ export const Calendar: FC<CalendarProps> = ({
           }
 
           if (!day.isCurrentMonth) {
-            dayClasses += 'text-[var(--color-calendar-weekday-text)] '
+            dayClasses += 'text-(--color-text-muted) '
           } else {
-            dayClasses += 'text-[var(--color-calendar-day-text)] '
+            dayClasses += 'text-(--color-text-primary) '
           }
 
           if (day.isSelected) {
             dayClasses += 'rounded-full font-semibold '
-            dayStyle.backgroundColor = selectedDateColor || 'var(--color-button)'
-            dayStyle.color = 'var(--color-text-dark-blue)'
+            dayStyle.backgroundColor = selectedDateColor || 'var(--color-brand-accent)'
+            dayStyle.color = 'var(--color-text-primary)'
           }
 
           if (selectRange) {
             if (day.isRangeStart || day.isRangeEnd) {
               dayClasses += 'rounded-full font-semibold '
-              dayStyle.backgroundColor = selectedDateColor || 'var(--color-button)'
-              dayStyle.color = 'var(--color-text-dark-blue)'
+              dayStyle.backgroundColor = selectedDateColor || 'var(--color-brand-accent)'
+              dayStyle.color = 'var(--color-text-primary)'
             } else if (day.isInRange) {
               dayClasses += 'rounded-none '
-              dayStyle.backgroundColor = rangeColor || 'var(--color-date-range-bg)'
+              dayStyle.backgroundColor = rangeColor || 'var(--color-state-warning-soft)'
               dayStyle.marginLeft = '-6px'
               dayStyle.marginRight = '-6px'
               dayStyle.width = 'calc(30px + 12px)'

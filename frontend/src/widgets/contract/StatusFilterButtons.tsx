@@ -30,10 +30,10 @@ export const StatusFilterButtons: FC<StatusFilterButtonsProps> = ({
             key={value}
             type="button"
             onClick={() => onChange(value)}
-            className={`shrink-0 h-[36px] px-4 rounded-[100px] text-[13px] font-bold transition-all cursor-pointer border ${
+            className={`shrink-0 h-[36px] px-4 rounded-[var(--radius-pill)] text-[13px] font-bold transition-all cursor-pointer border ${
               isActive
-                ? 'bg-(--color-button) border-(--color-button-border) text-(--color-text-purple)'
-                : 'bg-(--color-bg-secondary) border-(--color-border-tertiary) text-(--color-text-start-page) hover:opacity-80'
+                ? 'bg-(--color-brand-accent) border-(--color-brand-accent-border) text-(--color-brand-accent-text)'
+                : 'bg-(--color-surface-raised) border-(--color-border-subtle) text-(--color-text-secondary) hover:opacity-80'
             }`}
           >
             {label}

@@ -1,7 +1,7 @@
 import { type FC, useState } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { ShieldCheckIcon } from '@heroicons/react/24/outline'
-import { BottomModal } from '@/shared/ui'
+import { BottomModal, Button } from '@/shared/ui'
 import type { Contract } from '@/entities/contract'
 import { signContractText } from '../lib/signContract'
 
@@ -42,41 +42,30 @@ export const SignContractModal: FC<SignContractModalProps> = ({
   return (
     <BottomModal isOpen={isOpen} onClose={onClose} maxWidth="480">
       <div className="flex flex-col items-center gap-5">
-        <div className="w-[64px] h-[64px] rounded-full bg-[var(--color-button)] flex items-center justify-center">
-          <ShieldCheckIcon className="w-7 h-7 text-[var(--color-text-purple)]" />
+        <div className="w-[64px] h-[64px] rounded-full bg-(--color-brand-accent) flex items-center justify-center">
+          <ShieldCheckIcon className="w-7 h-7 text-(--color-brand)" />
         </div>
         <div className="flex flex-col gap-1 text-center">
-          <h2 className="md:text-[22px] text-[18px] font-bold text-[var(--color-text-dark-blue)]">
-            Sign with your wallet
-          </h2>
-          <p className="md:text-[15px] text-[13px] font-medium text-[var(--color-modal-text)] leading-snug">
+          <h2 className="text-h2 text-(--color-text-primary)">Sign with your wallet</h2>
+          <p className="text-body text-(--color-text-secondary)">
             Your wallet will be asked to sign the SHA-256 hash of the contract text. No transaction
             is broadcast.
           </p>
         </div>
 
         {error && (
-          <div className="w-full text-center text-[13px] font-medium text-[var(--color-text-warning)]">
+          <div className="w-full text-center text-[13px] font-medium text-(--color-state-danger)">
             {error}
           </div>
         )}
 
         <div className="flex flex-col gap-2 w-full">
-          <button
-            type="button"
-            onClick={handleSign}
-            disabled={isSigning || !signMessage}
-            className="w-full h-[44px] bg-[var(--color-button)] border border-[var(--color-button-border)] rounded-[8px] text-[14px] font-bold text-[var(--color-text-purple)] cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
-          >
+          <Button onClick={handleSign} disabled={isSigning || !signMessage} className="w-full">
             {isSigning ? 'Waiting for wallet…' : 'Sign with wallet'}
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full h-[44px] rounded-[8px] text-[14px] font-bold text-[var(--color-text-start-page)] cursor-pointer hover:opacity-80"
-          >
+          </Button>
+          <Button onClick={onClose} variant="ghost" className="w-full">
             Cancel
-          </button>
+          </Button>
         </div>
       </div>
     </BottomModal>

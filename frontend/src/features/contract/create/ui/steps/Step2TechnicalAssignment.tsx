@@ -13,7 +13,7 @@ export const Step2TechnicalAssignment: FC<Step2TechnicalAssignmentProps> = ({ fo
 
   return (
     <div className="flex flex-col gap-2 h-full min-h-[60vh]">
-      <p className="text-[13px] font-medium text-[var(--color-text-light-gray)]">
+      <p className="text-[13px] font-medium text-(--color-text-muted)">
         The assignment is pre-filled from the selected template. Edit it freely — this exact text
         will be embedded into the contract.
       </p>

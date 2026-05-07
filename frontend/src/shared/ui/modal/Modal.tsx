@@ -26,19 +26,19 @@ export const Modal: FC<ModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ backgroundColor: 'rgba(255, 255, 255, 0.7)' }}
+      className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm"
+      style={{ backgroundColor: 'var(--color-surface-overlay)' }}
       onClick={handleBackdropClick}
     >
       <div
-        className={`bg-(--color-bg-block) rounded-[20px] p-[30px] w-full mx-4 relative border border-(--color-border) ${className}`}
+        className={`bg-(--color-surface-raised) rounded-[var(--radius-xl)] p-[30px] w-full mx-4 relative border border-(--color-border-subtle) shadow-[var(--shadow-md)] ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
         {showCloseButton && (
           <button
             type="button"
             onClick={onClose}
-            className="absolute top-4 right-4 text-(--color-text-primary) hover:text-(--color-text-black) transition-colors cursor-pointer"
+            className="absolute top-4 right-4 text-(--color-text-secondary) hover:text-(--color-text-primary) transition-colors cursor-pointer"
             aria-label="Close"
           >
             <XMarkIcon className="w-5 h-5" />

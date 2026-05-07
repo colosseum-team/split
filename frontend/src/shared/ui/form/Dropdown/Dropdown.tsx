@@ -75,22 +75,21 @@ export const Dropdown: FC<DropdownProps> = ({
 
   const shouldShowError = error && hasInteracted
 
-  let baseClasses = `w-full h-[53px] px-5 py-4 rounded-[16px] bg-[var(--color-input-bg)] border transition-colors cursor-pointer flex items-center justify-between ${
+  let baseClasses = `w-full h-[53px] px-5 py-4 rounded-[var(--radius-lg)] bg-(--color-surface-muted) border transition-colors cursor-pointer flex items-center justify-between ${
     disabled ? 'opacity-50 cursor-not-allowed' : ''
   } ${className}`
 
   if (shouldShowError) {
-    baseClasses += ' border-[var(--color-input-warning)]'
+    baseClasses += ' border-(--color-state-danger)'
   } else if (isFocused) {
-    baseClasses += ' border-[var(--color-input-active)]'
+    baseClasses += ' border-(--color-brand-accent-border)'
   } else {
-    baseClasses += ' border-[var(--color-input-border)]'
+    baseClasses += ' border-(--color-border-subtle)'
   }
 
-  const labelClasses =
-    'block md:text-[16px] text-[14px] font-bold text-[var(--color-form-label-text)] mb-2'
+  const labelClasses = 'block md:text-[16px] text-[14px] font-bold text-(--color-text-primary) mb-2'
   const dropdownClasses =
-    'absolute top-full left-0 right-0 mt-4 z-50 bg-[var(--color-input-bg)] border border-[var(--color-input-border)] rounded-[16px] px-4 max-h-60 overflow-y-auto'
+    'absolute top-full left-0 right-0 mt-4 z-50 bg-(--color-surface-raised) border border-(--color-border-subtle) rounded-[var(--radius-lg)] px-4 max-h-60 overflow-y-auto shadow-[var(--shadow-md)]'
 
   const dropdownId = label
     ? `dropdown-${label.toLowerCase().replace(/\s+/g, '-')}`
@@ -101,7 +100,7 @@ export const Dropdown: FC<DropdownProps> = ({
       {label && (
         <label htmlFor={dropdownId} className={labelClasses}>
           {label}
-          {required && <span className="text-[var(--color-text-warning)] ml-1">*</span>}
+          {required && <span className="text-(--color-state-danger) ml-1">*</span>}
         </label>
       )}
 
@@ -125,8 +124,8 @@ export const Dropdown: FC<DropdownProps> = ({
           <span
             className={`md:text-[16px] text-[14px] ${
               selectedOption
-                ? 'text-[var(--color-text-dark-blue)] font-medium'
-                : 'text-[var(--color-input-text-placeholder)] font-normal'
+                ? 'text-(--color-text-primary) font-medium'
+                : 'text-(--color-text-muted) font-normal'
             }`}
           >
             {selectedOption ? selectedOption.label : placeholder}
@@ -143,7 +142,7 @@ export const Dropdown: FC<DropdownProps> = ({
             {options.map((option, index) => (
               <div key={option.value}>
                 <div
-                  className={`md:text-[16px] text-[15px] font-medium text-[var(--color-text-dark-blue)] cursor-pointer transition-colors py-3 ${
+                  className={`md:text-[16px] text-[15px] font-medium text-(--color-text-primary) cursor-pointer transition-colors py-3 ${
                     option.disabled ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-80'
                   } ${selectedOption?.value === option.value ? 'opacity-100 font-bold' : ''}`}
                   onClick={() => handleOptionClick(option)}
@@ -151,7 +150,7 @@ export const Dropdown: FC<DropdownProps> = ({
                   {option.label}
                 </div>
                 {index < options.length - 1 && (
-                  <div className="border-b border-[var(--color-input-border)] -mx-4" />
+                  <div className="border-b border-(--color-border-subtle) -mx-4" />
                 )}
               </div>
             ))}
@@ -160,13 +159,13 @@ export const Dropdown: FC<DropdownProps> = ({
       </div>
 
       {shouldShowError && (
-        <p className="mt-[12px] text-start font-normal md:text-[16px] text-[14px] text-[var(--color-input-warning)]">
+        <p className="mt-[12px] text-start font-normal md:text-[16px] text-[14px] text-(--color-state-danger)">
           {error}
         </p>
       )}
 
       {helperText && !error && (
-        <p className="mt-[12px] text-start font-normal md:text-[16px] text-[14px] text-[var(--color-text-primary)]">
+        <p className="mt-[12px] text-start font-normal md:text-[16px] text-[14px] text-(--color-text-secondary)">
           {helperText}
         </p>
       )}

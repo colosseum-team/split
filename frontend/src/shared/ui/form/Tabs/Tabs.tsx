@@ -26,7 +26,7 @@ export const Tabs: FC<TabsProps> = ({
   type = 'radio',
   className = '',
   isRadioActive = false,
-  activeColor = 'var(--color-tab-border)',
+  activeColor = 'var(--color-brand)',
 }) => {
   const handleClick = (optionValue: string) => {
     if (type === 'toggle' && value === optionValue) {
@@ -38,26 +38,22 @@ export const Tabs: FC<TabsProps> = ({
   return (
     <div className={`flex flex-col ${className}`}>
       {label && (
-        <label className="text-[14px] font-bold text-[var(--color-form-label-text)] mb-2">
-          {label}
-        </label>
+        <label className="text-[14px] font-bold text-(--color-text-primary) mb-2">{label}</label>
       )}
       <div className="flex gap-2">
         {options.map((option) => {
           const isActive = value === option.value
-          const borderColor = isActive ? activeColor : 'var(--color-border-tertiary)'
+          const borderColor = isActive ? activeColor : 'var(--color-border-subtle)'
           const borderWidth = '2px'
 
-          const textColor = isActive
-            ? 'var(--color-text-dark-blue)'
-            : 'var(--color-text-start-page)'
+          const textColor = isActive ? 'var(--color-text-primary)' : 'var(--color-text-secondary)'
 
           return (
             <button
               key={option.value}
               type="button"
               onClick={() => handleClick(option.value)}
-              className="w-full min-h-[48px] rounded-[12px] border text-[14px] font-bold p-[14px] transition-all flex flex-row items-center justify-center cursor-pointer"
+              className="w-full min-h-[48px] rounded-[var(--radius-md)] border bg-(--color-surface-raised) text-[14px] font-bold p-[14px] transition-all flex flex-row items-center justify-center cursor-pointer shadow-[var(--shadow-sm)]"
               style={{
                 borderColor,
                 borderWidth,
@@ -68,7 +64,7 @@ export const Tabs: FC<TabsProps> = ({
                 <div
                   className="w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 mr-2"
                   style={{
-                    borderColor: isActive ? activeColor : 'var(--color-border-secondary)',
+                    borderColor: isActive ? activeColor : 'var(--color-border-default)',
                   }}
                 >
                   {isActive && (

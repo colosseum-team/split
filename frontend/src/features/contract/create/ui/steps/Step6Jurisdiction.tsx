@@ -19,7 +19,7 @@ export const Step6Jurisdiction: FC<Step6JurisdictionProps> = ({ form }) => {
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-[13px] font-medium text-[var(--color-text-light-gray)]">
+      <p className="text-[13px] font-medium text-(--color-text-muted)">
         Choose the law that governs the contract. Optionally extend it with custom additional terms.
       </p>
 

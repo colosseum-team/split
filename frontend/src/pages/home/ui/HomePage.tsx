@@ -6,6 +6,7 @@ import { useContractsStore } from '@/entities/contract'
 import { useWalletAuth } from '@/features/wallet'
 import { Header, Layout } from '@/widgets/layout'
 import { ContractCard, StatusFilterButtons, type StatusFilter } from '@/widgets/contract'
+import { Button, RoleChip } from '@/shared/ui'
 
 export const HomePage: FC = () => {
   const navigate = useNavigate()
@@ -52,18 +53,14 @@ export const HomePage: FC = () => {
         <div className="flex items-center gap-3">
           {/* place for logo */}
           <div className="flex flex-col">
-            <h1 className="md:text-[22px] text-[18px] font-bold text-(--color-text-black) leading-tight">
-              All contracts
-            </h1>
-            <span className="text-[12px] font-medium text-(--color-role-text) capitalize">
-              {role ?? ''}
-            </span>
+            <h1 className="text-h2 text-(--color-text-primary)">All contracts</h1>
+            <RoleChip role={role} className="mt-1 self-start" />
           </div>
         </div>
         <button
           type="button"
           onClick={handleDisconnect}
-          className="flex items-center gap-1 text-[13px] font-bold text-(--color-text-purple) hover:opacity-80 transition-opacity cursor-pointer"
+          className="flex items-center gap-1 text-[13px] font-bold text-(--color-brand) hover:opacity-80 transition-opacity cursor-pointer"
           aria-label="Disconnect wallet"
         >
           <span className="hidden md:inline">Disconnect</span>
@@ -83,10 +80,8 @@ export const HomePage: FC = () => {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center text-center py-16 gap-2">
-            <div className="text-[18px] font-bold text-(--color-text-dark-blue)">
-              No contracts yet
-            </div>
-            <p className="text-[14px] font-medium text-(--color-text-start-page) max-w-[320px]">
+            <div className="text-h3 text-(--color-text-primary)">No contracts yet</div>
+            <p className="text-body text-(--color-text-secondary) max-w-[320px]">
               {role === 'customer'
                 ? 'Tap the plus button below to create your first contract.'
                 : 'Once a customer creates a contract for you, it will appear here.'}
@@ -96,15 +91,16 @@ export const HomePage: FC = () => {
       </div>
 
       {role === 'customer' && (
-        <button
-          type="button"
+        <Button
           onClick={handleCreate}
-          className="fixed bottom-6 right-6 w-14 h-14 md:w-auto md:h-auto md:px-6 md:py-3 flex items-center gap-2 justify-center bg-(--color-button) border border-(--color-button-border) rounded-full md:rounded-[12px] shadow-lg md:shadow-md text-(--color-text-purple) font-bold cursor-pointer hover:opacity-90 transition-opacity z-40"
+          size="lg"
+          role="customer"
+          className="fixed bottom-6 right-6 z-40 w-14 px-0 rounded-[var(--radius-pill)] md:w-auto md:px-6 shadow-[var(--shadow-md)]"
           aria-label="Create contract"
         >
           <PlusIcon className="w-5 h-5" />
           <span className="hidden md:inline">Create contract</span>
-        </button>
+        </Button>
       )}
     </Layout>
   )

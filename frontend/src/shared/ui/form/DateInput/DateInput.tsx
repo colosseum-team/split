@@ -88,10 +88,10 @@ export const DateInput: FC<DateInputProps> = ({
     setIsFocused(false)
   }
 
-  const inputClasses = `w-full h-[53px] px-5 py-4 rounded-[16px] bg-[var(--color-input-bg)] border border-[var(--color-input-border)] md:text-[16px] text-[14px] font-normal text-[var(--color-text-dark-blue)] placeholder:text-[var(--color-input-text-placeholder)] focus:outline-none transition-colors cursor-pointer flex items-center justify-between ${
-    isFocused ? 'border-[var(--color-input-active)]' : ''
+  const inputClasses = `w-full h-[53px] px-5 py-4 rounded-[var(--radius-lg)] bg-(--color-surface-muted) border border-(--color-border-subtle) md:text-[16px] text-[14px] font-normal text-(--color-text-primary) placeholder:text-(--color-text-muted) focus:outline-none transition-colors cursor-pointer flex items-center justify-between ${
+    isFocused ? 'border-(--color-brand-accent-border)' : ''
   } ${className}`
-  const labelClasses = `block md:text-[16px] text-[14px] font-bold text-[var(--color-form-label-text)] mb-2`
+  const labelClasses = `block md:text-[16px] text-[14px] font-bold text-(--color-text-primary) mb-2`
   const displayValue = getDisplayValue(value, mode)
   const calendarValue = getCalendarValue(value, mode)
   const hasValue = Boolean(displayValue)
@@ -106,7 +106,7 @@ export const DateInput: FC<DateInputProps> = ({
       {label && (
         <label htmlFor={dateInputId} className={labelClasses}>
           {label}
-          {props.required && <span className="text-[var(--color-text-warning)] ml-1">*</span>}
+          {props.required && <span className="text-(--color-state-danger) ml-1">*</span>}
         </label>
       )}
 
@@ -128,8 +128,8 @@ export const DateInput: FC<DateInputProps> = ({
           <span
             className={
               displayValue
-                ? 'text-[var(--color-text-dark-blue)] font-medium'
-                : 'text-[var(--color-input-text-placeholder)] font-normal'
+                ? 'text-(--color-text-primary) font-medium'
+                : 'text-(--color-text-muted) font-normal'
             }
           >
             {displayValue || 'Select date'}
@@ -139,7 +139,7 @@ export const DateInput: FC<DateInputProps> = ({
               <button
                 type="button"
                 aria-label="Clear date"
-                className="flex items-center justify-center w-6 h-6 rounded-full hover:opacity-80 transition-opacity text-[var(--color-text-dark-blue)] cursor-pointer"
+                className="flex items-center justify-center w-6 h-6 rounded-full hover:opacity-80 transition-opacity text-(--color-text-primary) cursor-pointer"
                 onClick={(e) => {
                   e.stopPropagation()
                   onChange?.(null)
@@ -150,7 +150,7 @@ export const DateInput: FC<DateInputProps> = ({
                 <XMarkIcon className="w-3 h-3" />
               </button>
             )}
-            <CalendarIcon className="w-[19px] h-[18px] text-[var(--color-text-dark-blue)]" />
+            <CalendarIcon className="w-[19px] h-[18px] text-(--color-text-primary)" />
           </div>
         </div>
 

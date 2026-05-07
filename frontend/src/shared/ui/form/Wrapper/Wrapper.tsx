@@ -29,10 +29,11 @@ export const Wrapper: FC<WrapperProps> = ({
     throw new Error('iconBgColor is required when singleIcon is false')
   }
 
-  const containerBaseClasses = 'rounded-[20px] p-[24px] md:p-[16px]'
+  const containerBaseClasses =
+    'rounded-[var(--radius-xl)] p-[24px] md:p-[16px] shadow-[var(--shadow-sm)]'
   const containerBgClasses = bgGray
-    ? 'md:bg-[var(--color-bg-secondary)] bg-[var(--color-wrapper-container-bg)]'
-    : 'border border-[var(--color-wrapper-container-border)] bg-[var(--color-bg-secondary)]'
+    ? 'md:bg-(--color-surface-raised) bg-(--color-surface-muted)'
+    : 'border border-(--color-border-subtle) bg-(--color-surface-raised)'
   const containerClasses = `${containerBaseClasses} ${containerBgClasses} ${className}`
 
   const hasDescription = !!description
@@ -45,7 +46,7 @@ export const Wrapper: FC<WrapperProps> = ({
     </div>
   ) : (
     <div
-      className="w-[40px] h-[40px] rounded-[12px] flex items-center justify-center flex-shrink-0"
+      className="w-[40px] h-[40px] rounded-[var(--radius-md)] flex items-center justify-center flex-shrink-0"
       style={{ backgroundColor: iconBgColor }}
     >
       <div className="w-[20px] h-[20px]" style={{ color: iconColor }}>
@@ -56,11 +57,9 @@ export const Wrapper: FC<WrapperProps> = ({
 
   const textContent = (
     <div className="flex flex-col gap-0">
-      <h3 className="md:text-[18px] text-[16px] font-bold text-[var(--color-text-dark-blue)]">
-        {title}
-      </h3>
+      <h3 className="text-h3 text-(--color-text-primary)">{title}</h3>
       {description && (
-        <p className="md:text-[14px] text-[12px] font-medium text-[var(--color-terms-description-text)] text-left">
+        <p className="md:text-[14px] text-[12px] font-medium text-(--color-text-secondary) text-left">
           {description}
         </p>
       )}
@@ -75,7 +74,7 @@ export const Wrapper: FC<WrapperProps> = ({
       </div>
 
       {paragraph && (
-        <p className="text-[var(--color-text-contract-draft)] text-[14px] font-medium text-left mt-1 mb-4">
+        <p className="text-(--color-text-secondary) text-[14px] font-medium text-left mt-1 mb-4">
           {paragraph}
         </p>
       )}

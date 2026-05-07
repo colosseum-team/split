@@ -1,28 +1,6 @@
 @import 'tailwindcss';
 
 @font-face {
-  font-family: 'SF Pro Text';
-  src:
-    url('/assets/fonts/SFProText-Regular.woff2') format('woff2'),
-    url('/assets/fonts/SFProText-Regular.woff') format('woff'),
-    url('/assets/fonts/SFProText-Regular.ttf') format('truetype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'SF Pro Text';
-  src:
-    url('/assets/fonts/SFProText-Semibold.woff2') format('woff2'),
-    url('/assets/fonts/SFProText-Semibold.woff') format('woff'),
-    url('/assets/fonts/SFProText-Semibold.ttf') format('truetype');
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
   font-family: 'Gilroy';
   src:
     url('/assets/fonts/Gilroy-Medium.woff2') format('woff2'),
@@ -68,137 +46,65 @@
 
 @layer base {
   :root {
-    --font-sf-pro-text: 'SF Pro Text', sans-serif;
     --font-gilroy: 'Gilroy', sans-serif;
     --font-overpass-mono: 'Overpass Mono', monospace;
 
-    --color-bg: #ececec;
-    --color-bg-secondary: #ffffff;
-    --color-bg-block: #fbfbfb;
-    --color-border: #d7d7d7;
-    --color-border-secondary: #d1d5db;
-    --color-border-tertiary: #e5e7eb;
-    --color-border-contract-card: #f3f4f6;
+    --color-surface-base: #fafaff;
+    --color-surface-raised: #ffffff;
+    --color-surface-muted: #f5f6fb;
+    --color-surface-soft: #fbfbff;
+    --color-surface-overlay: rgba(255, 255, 255, 0.72);
 
-    --color-shadow: #e3e3e3;
-    --color-separator: #e3e3e3;
+    --color-border-subtle: #eef0f7;
+    --color-border-default: #dfe3ee;
+    --color-border-strong: #c8cedd;
 
-    --color-text-primary: #4e4e4e;
-    --color-text-secondary: #d7d7d7;
-    --color-text-black: #000000;
-    --color-text-purple: #68004d;
-    --color-text-gray: #444444;
-    --color-text-light-gray: #a0a0a0;
-    --color-text-label: #747474;
-    --color-text-warning: #ef4444;
-    --color-text-yellow: #ffd100;
+    --color-text-primary: #111827;
+    --color-text-secondary: #4b5563;
+    --color-text-muted: #8a94a6;
+    --color-text-disabled: #aab2c1;
+    --color-text-inverse: #ffffff;
+    --color-text-link: #68004d;
 
-    --color-input-active: #feb709;
-    --color-input-bg: #f9fafb;
-    --color-input-border: #e5e7eb;
-    --color-input-text-placeholder: #9ca3af;
-    --color-input-label: #515151;
-    --color-input-label-secondary: #374151;
-    --color-input-warning: #ff0000;
+    --color-brand: #68004d;
+    --color-brand-soft: #fce7f3;
+    --color-brand-accent: #f4d7ec;
+    --color-brand-accent-border: #ede0e9;
+    --color-brand-accent-text: #68004d;
 
-    --color-button: #fecc09;
-    --color-button-border: #feb709;
-    --color-button-cancel: #ef4444;
+    --color-role-customer: #ffb59a;
+    --color-role-customer-soft: #ffe7dc;
+    --color-role-customer-border: #ffc9b6;
+    --color-role-customer-text: #8a3210;
+    --color-role-performer: #9be3c2;
+    --color-role-performer-soft: #d8f5e8;
+    --color-role-performer-border: #b6ebd2;
+    --color-role-performer-text: #11593f;
 
-    --color-wrapper-container-bg: #f9fafb;
-    --color-wrapper-container-border: #e5e7eb;
+    --color-state-success: #018732;
+    --color-state-success-soft: #dcfce7;
+    --color-state-info: #2563eb;
+    --color-state-info-soft: #dbeafe;
+    --color-state-warning: #b97f05;
+    --color-state-warning-soft: #fff5cc;
+    --color-state-danger: #dc2626;
+    --color-state-danger-soft: #fee2e2;
+    --color-state-neutral: #374151;
+    --color-state-neutral-soft: #f3f4f6;
 
-    --color-radiobutton-active: #68004d;
-    --color-radiobutton-inactive: #d7d7d7;
-    --color-checkbox-active: #68004d;
-    --color-checkbox-inactive: #d7d7d7;
+    --color-decor-peach: rgba(255, 181, 154, 0.42);
+    --color-decor-mint: rgba(155, 227, 194, 0.44);
+    --color-decor-lavender: rgba(210, 190, 255, 0.42);
 
-    --color-step-passed: #ffd21e;
-    --color-step-active: #68004d;
-    --color-step-inactive: #d7d7d7;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+    --radius-pill: 9999px;
 
-    --color-dropdown-hover-bg: #444444;
-    --color-dropdown-hover-text: #ffffff;
-
-    /* Contract status badges (subset relevant to MVP) */
-    --color-text-contract-draft: #374151;
-    --color-bg-contract-draft: #f3f4f6;
-    --color-text-contract-pending: #1d4ed8;
-    --color-bg-contract-pending: #dbeafe;
-    --color-text-contract-partially-signed: #7e22ce;
-    --color-bg-contract-partially-signed: #f3e8ff;
-    --color-text-contract-signed: #15803d;
-    --color-bg-contract-signed: #dcfce7;
-    --color-text-contract-completed: #00a010;
-    --color-bg-contract-completed: #c0ffd6;
-    --color-text-contract-declined: #b8c7c2;
-    --color-bg-contract-declined: #e9f0ee;
-
-    --color-svg-bg: #facc15;
-    --color-svg-bg-secondary: #f4d96b;
-    --color-emoji-bg: #e0e0e0;
-    --color-role-text: #6b7280;
-
-    --color-form-blue: #2563eb;
-    --color-form-light-blue: #dbeafe;
-    --color-form-purple: #9333ea;
-    --color-form-light-purple: #f3e8ff;
-    --color-form-purple-secondary: #a855f7;
-    --color-form-green: #16a34a;
-    --color-form-light-green: #dcfce7;
-    --color-form-golden: #b97f05;
-    --color-form-light-golden: #fdefb7;
-    --color-form-brown: #b47a01;
-    --color-form-light-brown: #fdefb7;
-    --color-form-btn-disabled: #bcbcbc;
-    --color-form-btn-disabled-text: #6a6a6a;
-    --color-form-label-text: #374151;
-    --color-form-icon-bg: #ebebeb;
-    --color-form-checkbox-bg: #dbdbdb;
-    --color-form-steps-text: #00000080;
-
-    --color-text-dark-blue: #111827;
-    --color-text-start-page: #4b5563;
-    --color-button-start-page: #f9fafb;
-    --color-button-border-start-page: #f3f4f6;
-    --color-wallet-icon: #3b82f6;
-    --color-telegram-icon: #3b82f6;
-
-    --color-hourglass-icon: #5e005c;
-    --color-hourglass-icon-bg: #ffe47a;
-    --color-check-mark-icon: #005e0b;
-    --color-check-mark-icon-bg: #b9ffb5;
-    --color-wallet-address-input: #f5f5f5;
-    --color-wallet-address-input-text: #868686;
-    --color-continue-button-text: #5e0056;
-    --color-check-benefits-icon: #3e65b4;
-    --color-check-benefits-icon-bg: #dfe7f9;
-    --color-text-benefits: #374151;
-
-    --color-cancel-modal-button: #e7e7e7;
-    --color-cancel-modal-button-text: #5e0056;
-    --color-modal-success-icon: #018732;
-    --color-modal-success-icon-bg: #c0ffd6;
-    --color-modal-error-icon: #dc2626;
-    --color-modal-error-icon-bg: #fee2e2;
-    --color-modal-text: #4b5563;
-
-    --color-loader: #fecc09;
-    --color-bg-signature-button: #ececec;
-
-    --color-edit-icon: #8d8d8d;
-    --color-edit-bg: #fff9eb;
-    --color-edit-border: #fef08a;
-    --color-edit-text: #713f12;
-
-    --color-terms-description-text: #6b7280;
-
-    --color-tab-border: #68004d;
-    --color-text-calendar-grey: #1f2937;
-    --color-calendar-border: #e5e7eb;
-    --color-calendar-weekday-text: #9ca3af;
-    --color-calendar-day-text: #1f2937;
-    --color-date-range-bg: #fff5cc;
+    --shadow-sm: 0 1px 2px rgba(20, 20, 40, 0.04), 0 1px 1px rgba(20, 20, 40, 0.03);
+    --shadow-md: 0 10px 24px rgba(20, 20, 40, 0.08);
+    --shadow-lg: 0 24px 60px rgba(20, 20, 40, 0.12);
   }
 
   html {
@@ -207,7 +113,7 @@
   }
 
   body {
-    background-color: var(--color-bg);
+    background-color: var(--color-surface-base);
     color: var(--color-text-primary);
     font-family: var(--font-gilroy);
     font-weight: 500;
@@ -230,8 +136,8 @@
     font-family: var(--font-gilroy);
     font-weight: 500;
     font-size: 14px;
-    color: var(--color-text-black);
-    background-color: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    background-color: var(--color-surface-raised);
   }
 
   .contract-title {
@@ -239,21 +145,21 @@
     font-weight: 700;
     text-align: center;
     font-size: 18px;
-    color: var(--color-text-black);
+    color: var(--color-text-primary);
   }
 
   .contract-subtitle {
     font-family: var(--font-gilroy);
     font-weight: 700;
     font-size: 16px;
-    color: var(--color-text-purple);
+    color: var(--color-brand);
     margin-top: 30px;
   }
 
   .contract-text {
     margin-top: 20px;
     line-height: 1.5;
-    color: var(--color-text-black);
+    color: var(--color-text-primary);
   }
 
   .contract-text-indent {
@@ -265,7 +171,54 @@
   .contract-caption {
     margin-top: 4px;
     font-size: 12px;
-    color: var(--color-text-label);
+    color: var(--color-text-muted);
+  }
+
+  .text-display {
+    font-size: 32px;
+    line-height: 1.05;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+  }
+
+  .text-h1 {
+    font-size: 24px;
+    line-height: 1.15;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+  }
+
+  .text-h2 {
+    font-size: 20px;
+    line-height: 1.2;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+  }
+
+  .text-h3 {
+    font-size: 16px;
+    line-height: 1.3;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+  }
+
+  .text-body {
+    font-size: 14px;
+    line-height: 1.45;
+    font-weight: 500;
+  }
+
+  .text-caption {
+    font-size: 12px;
+    line-height: 1.35;
+    font-weight: 500;
+  }
+
+  .text-mono {
+    font-family: var(--font-overpass-mono);
+    font-size: 12px;
+    line-height: 1.35;
+    font-weight: 500;
   }
 }
 
