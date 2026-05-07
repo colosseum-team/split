@@ -7,7 +7,8 @@ Responsibilities:
 - Wallet sign-in (SIWS) → JWT.
 - Role profile (`customer` / `user`).
 - Contracts CRUD and lifecycle: create, fund, accept, submit, approve, dispute, resolve.
-- Storage of QVAC AI outputs (contract copilot + dispute brief). The backend never invokes a model — inference is local in the browser.
+- Storage of QVAC AI outputs (contract copilot + dispute brief).
+- Optional backend-side QVAC inference (`/copilot-run`, `/dispute-run`) with persistence to `AiOutput`.
 - Optional arbiter wallet that resolves disputes on-chain when `ARBITER_AUTOEXECUTE=true`.
 
 ## Local run
@@ -53,8 +54,15 @@ Responsibilities:
 - `POST /contracts/:id/resolve-dispute` — record agreed outcome (calls on-chain ResolveDispute when `ARBITER_AUTOEXECUTE=true`).
 - `POST /contracts/:id/copilot-output` — store QVAC contract copilot result.
 - `POST /contracts/:id/dispute-output` — store QVAC dispute brief.
+- `POST /contracts/:id/copilot-run` — run QVAC contract copilot on backend and store output.
+- `POST /contracts/:id/dispute-run` — run QVAC dispute brief on backend and store output.
 - `GET /contracts/:id/ai-outputs?kind=...` — list AI outputs for a contract.
 
-## Why no LLM on the backend
+## QVAC modes
 
-`docs/qvac-ai-arbitration-plan.md` is offline-first: all inference runs in the browser via `@qvac/llm-llamacpp`. The backend persists only `result_json`, `model_id`, `model_version`, `input_hash`, `output_hash` so the demo can prove the AI ran locally.
+The backend supports two modes:
+
+- Browser-local inference mode (legacy): frontend posts completed AI output via `*-output` routes.
+- Backend inference mode (recommended): frontend calls `*-run` routes; backend executes QVAC and persists the output.
+
+Detailed setup and payload contracts are documented in `backend/docs/qvac-backend.md`.

@@ -45,10 +45,12 @@ export type DisputeBriefResult = {
 
 export interface LocalAiAdapter {
   improveContract(
+    contractId: string,
     input: ContractDraft,
     scenario: Exclude<DemoScenario, 'off'>,
   ): Promise<ContractCopilotResult>
   generateDisputeSummary(
+    contractId: string,
     input: DisputeInput,
     scenario: Exclude<DemoScenario, 'off'>,
   ): Promise<DisputeBriefResult>

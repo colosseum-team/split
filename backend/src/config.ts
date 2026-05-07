@@ -23,6 +23,13 @@ const Env = z.object({
     .default('false')
     .transform((v) => v === 'true'),
   ARBITER_PRIVATE_KEY: z.string().optional(),
+
+  QVAC_ENABLED: z
+    .string()
+    .default('false')
+    .transform((v) => v === 'true'),
+  QVAC_MODEL_ID: z.string().default('qvac-llamacpp'),
+  QVAC_MODEL_VERSION: z.string().default('unknown'),
 })
 
 export const config = Env.parse(process.env)

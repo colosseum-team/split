@@ -8,6 +8,7 @@ import type {
 } from '../types'
 
 type LooseRecord = Record<string, unknown>
+type QvacModuleName = '@qvac/llm-llamacpp' | '@qvac/embed-llamacpp'
 
 const assertQvacRuntime = () => {
   if (!('Bare' in globalThis)) {
@@ -17,7 +18,7 @@ const assertQvacRuntime = () => {
   }
 }
 
-const loadModule = async (moduleName: '@qvac/llm-llamacpp' | '@qvac/embed-llamacpp') => {
+const loadModule = async (moduleName: QvacModuleName) => {
   assertQvacRuntime()
   if (moduleName === '@qvac/llm-llamacpp') {
     return (await import('@qvac/llm-llamacpp')) as LooseRecord
@@ -26,7 +27,7 @@ const loadModule = async (moduleName: '@qvac/llm-llamacpp' | '@qvac/embed-llamac
 }
 
 const callModuleFn = async (
-  moduleName: '@qvac/llm-llamacpp' | '@qvac/embed-llamacpp',
+  moduleName: QvacModuleName,
   candidateNames: string[],
   args: unknown[],
 ): Promise<unknown> => {
@@ -134,7 +135,8 @@ const buildDisputeResult = (
 })
 
 export const qvacLocalAiAdapter: LocalAiAdapter = {
-  async improveContract(input: ContractDraft, scenario: 'design' | 'logo') {
+  async improveContract(contractId: string, input: ContractDraft, scenario: 'design' | 'logo') {
+    void contractId
     const llmResponse = await callModuleFn(
       '@qvac/llm-llamacpp',
       ['generate', 'infer', 'run', 'chat'],
@@ -150,7 +152,12 @@ export const qvacLocalAiAdapter: LocalAiAdapter = {
     return result
   },
 
-  async generateDisputeSummary(input: DisputeInput, scenario: 'design' | 'logo') {
+  async generateDisputeSummary(
+    contractId: string,
+    input: DisputeInput,
+    scenario: 'design' | 'logo',
+  ) {
+    void contractId
     await callModuleFn(
       '@qvac/embed-llamacpp',
       ['embed', 'createEmbedding', 'embeddings', 'encode'],

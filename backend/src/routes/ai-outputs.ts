@@ -2,6 +2,8 @@ import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { prisma } from '../services/prisma.js'
 import { sha256Hex } from '../services/hash.js'
+import { config } from '../config.js'
+import { runContractCopilotQvac, runDisputeBriefQvac } from '../services/qvac.js'
 
 // QVAC contract copilot output schema.
 // Mirrors the JSON shape the frontend produces locally
@@ -57,6 +59,27 @@ const PostDispute = PostOutputBase.extend({
   result: DisputeBriefResultJson,
 })
 
+const Scenario = z.enum(['design', 'logo'])
+
+const RunCopilotRequest = z.object({
+  scenario: Scenario,
+  input: z.object({
+    scope: z.string().min(1).max(10_000),
+    deliverables: z.string().min(1).max(10_000),
+    timeline: z.string().min(1).max(10_000),
+    paymentTerms: z.string().min(1).max(10_000),
+  }),
+})
+
+const RunDisputeRequest = z.object({
+  scenario: Scenario,
+  input: z.object({
+    requirementSnapshot: z.array(z.string()).min(1).max(200),
+    submissionSummary: z.string().min(1).max(20_000),
+    conversation: z.array(z.string()).max(500),
+  }),
+})
+
 function serializeOutput(o: {
   id: string
   contractId: string
@@ -77,6 +100,104 @@ function serializeOutput(o: {
 }
 
 export const aiOutputsRoutes: FastifyPluginAsync = async (app) => {
+  // POST /contracts/:id/copilot-run — backend runs QVAC and persists output.
+  app.post<{ Params: { id: string } }>('/contracts/:id/copilot-run', async (req, reply) => {
+    const claims = app.requireAuth(req)
+    const input = RunCopilotRequest.parse(req.body)
+    const c = await prisma.contract.findUnique({ where: { id: req.params.id } })
+    if (!c) return reply.status(404).send({ code: 'NOT_FOUND', message: 'contract not found' })
+    if (c.customerAddress !== claims.sub) {
+      return reply.status(403).send({
+        code: 'FORBIDDEN',
+        message: 'only customer can run contract copilot',
+      })
+    }
+
+    let result
+    try {
+      result = await runContractCopilotQvac(input.input)
+    } catch (error) {
+      return reply.status(503).send({
+        code: 'QVAC_UNAVAILABLE',
+        message: error instanceof Error ? error.message : 'QVAC inference failed',
+      })
+    }
+    const inputHash = sha256Hex({ contractId: c.id, scenario: input.scenario, input: input.input })
+    const outputHash = sha256Hex(result)
+
+    const row = await prisma.aiOutput.create({
+      data: {
+        contractId: c.id,
+        kind: 'contract_copilot',
+        modelId: config.QVAC_MODEL_ID,
+        modelVersion: config.QVAC_MODEL_VERSION,
+        inputHash,
+        outputHash,
+        resultJson: result,
+        riskScore: result.riskScore,
+      },
+    })
+
+    return {
+      ...serializeOutput(row),
+      result,
+      scenario: input.scenario,
+      modelId: config.QVAC_MODEL_ID,
+      modelVersion: config.QVAC_MODEL_VERSION,
+    }
+  })
+
+  // POST /contracts/:id/dispute-run — backend runs QVAC and persists output.
+  app.post<{ Params: { id: string } }>('/contracts/:id/dispute-run', async (req, reply) => {
+    const claims = app.requireAuth(req)
+    const input = RunDisputeRequest.parse(req.body)
+    const c = await prisma.contract.findUnique({ where: { id: req.params.id } })
+    if (!c) return reply.status(404).send({ code: 'NOT_FOUND', message: 'contract not found' })
+    const isParty = c.customerAddress === claims.sub || c.assigneeAddress === claims.sub
+    if (!isParty) {
+      return reply.status(403).send({ code: 'FORBIDDEN', message: 'not a party to this contract' })
+    }
+    if (c.status !== 'disputed') {
+      return reply.status(409).send({
+        code: 'INVALID_STATE',
+        message: `dispute brief only accepted for disputed contracts (status='${c.status}')`,
+      })
+    }
+
+    let result
+    try {
+      result = await runDisputeBriefQvac(input.input)
+    } catch (error) {
+      return reply.status(503).send({
+        code: 'QVAC_UNAVAILABLE',
+        message: error instanceof Error ? error.message : 'QVAC inference failed',
+      })
+    }
+    const inputHash = sha256Hex({ contractId: c.id, scenario: input.scenario, input: input.input })
+    const outputHash = sha256Hex(result)
+
+    const row = await prisma.aiOutput.create({
+      data: {
+        contractId: c.id,
+        kind: 'dispute_brief',
+        modelId: config.QVAC_MODEL_ID,
+        modelVersion: config.QVAC_MODEL_VERSION,
+        inputHash,
+        outputHash,
+        resultJson: result,
+        similarityScore: result.similarityScore / 100,
+      },
+    })
+
+    return {
+      ...serializeOutput(row),
+      result,
+      scenario: input.scenario,
+      modelId: config.QVAC_MODEL_ID,
+      modelVersion: config.QVAC_MODEL_VERSION,
+    }
+  })
+
   // POST /contracts/:id/copilot-output — frontend posts QVAC contract copilot result.
   app.post<{ Params: { id: string } }>('/contracts/:id/copilot-output', async (req, reply) => {
     const claims = app.requireAuth(req)
