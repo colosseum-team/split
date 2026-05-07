@@ -3,6 +3,24 @@
 # pulls the requested ref on the host and runs `docker compose up -d --build`.
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: split-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-split}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-split}
+      POSTGRES_DB: ${POSTGRES_DB:-split}
+    ports:
+      - "5432:5432"
+    volumes:
+      - split-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-split} -d ${POSTGRES_DB:-split}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   frontend:
     build:
       context: .
@@ -30,3 +48,6 @@ services:
       PORT: 3000
     ports:
       - "3001:3000"
+
+volumes:
+  split-postgres-data:

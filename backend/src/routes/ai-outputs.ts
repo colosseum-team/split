@@ -1,0 +1,188 @@
+import type { FastifyPluginAsync } from "fastify";
+import { z } from "zod";
+import { prisma } from "../services/prisma.js";
+import { sha256Hex } from "../services/hash.js";
+
+// QVAC contract copilot output schema.
+// Mirrors the JSON shape the frontend produces locally
+// (docs/qvac-ai-arbitration-plan.md, "Output schema").
+const ContractCopilotResultJson = z.object({
+  ambiguities: z.array(z.string()),
+  rewrite_suggestions: z.array(
+    z.object({
+      target: z.string(),
+      replacement: z.string(),
+    }),
+  ),
+  acceptance_criteria: z.array(z.string()),
+  risk_score: z.number().int().min(0).max(100),
+  risk_factors: z.array(z.string()),
+});
+
+const DisputeBriefResultJson = z.object({
+  case_summary: z.string(),
+  timeline: z.array(z.string()),
+  agreed_requirements: z.array(z.string()),
+  submitted_evidence: z.array(z.string()),
+  matches_and_gaps: z.array(
+    z.object({
+      requirement: z.string(),
+      evidence: z.string().nullable(),
+      match: z.enum(["match", "partial", "miss"]),
+    }),
+  ),
+  similarity_score: z.number().min(0).max(1),
+  risk_assessment: z.string(),
+  recommended_resolution: z.string(),
+});
+
+const PostOutputBase = z.object({
+  modelId: z.string().min(1).max(200),
+  modelVersion: z.string().min(1).max(100),
+  inputHash: z.string().regex(/^[0-9a-f]{64}$/).optional(),
+  outputHash: z.string().regex(/^[0-9a-f]{64}$/).optional(),
+});
+
+const PostCopilot = PostOutputBase.extend({
+  result: ContractCopilotResultJson,
+});
+
+const PostDispute = PostOutputBase.extend({
+  result: DisputeBriefResultJson,
+});
+
+function serializeOutput(o: {
+  id: string;
+  contractId: string;
+  kind: string;
+  modelId: string;
+  modelVersion: string;
+  inputHash: string;
+  outputHash: string;
+  resultJson: unknown;
+  similarityScore: number | null;
+  riskScore: number | null;
+  createdAt: Date;
+}) {
+  return {
+    ...o,
+    createdAt: o.createdAt.toISOString(),
+  };
+}
+
+export const aiOutputsRoutes: FastifyPluginAsync = async (app) => {
+  // POST /contracts/:id/copilot-output — frontend posts QVAC contract copilot result.
+  app.post<{ Params: { id: string } }>(
+    "/contracts/:id/copilot-output",
+    async (req, reply) => {
+      const claims = app.requireAuth(req);
+      const input = PostCopilot.parse(req.body);
+      const c = await prisma.contract.findUnique({ where: { id: req.params.id } });
+      if (!c) return reply.status(404).send({ code: "NOT_FOUND", message: "contract not found" });
+      if (c.customerAddress !== claims.sub) {
+        return reply.status(403).send({
+          code: "FORBIDDEN",
+          message: "only customer can post copilot results for their contract",
+        });
+      }
+
+      const outputHash = input.outputHash ?? sha256Hex(input.result);
+      const inputHash =
+        input.inputHash ??
+        sha256Hex({
+          contractId: c.id,
+          title: c.title,
+          description: c.description,
+          modelId: input.modelId,
+        });
+
+      const row = await prisma.aiOutput.create({
+        data: {
+          contractId: c.id,
+          kind: "contract_copilot",
+          modelId: input.modelId,
+          modelVersion: input.modelVersion,
+          inputHash,
+          outputHash,
+          resultJson: input.result,
+          riskScore: input.result.risk_score,
+        },
+      });
+      return serializeOutput(row);
+    },
+  );
+
+  // POST /contracts/:id/dispute-output — frontend posts QVAC dispute brief.
+  app.post<{ Params: { id: string } }>(
+    "/contracts/:id/dispute-output",
+    async (req, reply) => {
+      const claims = app.requireAuth(req);
+      const input = PostDispute.parse(req.body);
+      const c = await prisma.contract.findUnique({ where: { id: req.params.id } });
+      if (!c) return reply.status(404).send({ code: "NOT_FOUND", message: "contract not found" });
+      const isParty =
+        c.customerAddress === claims.sub || c.assigneeAddress === claims.sub;
+      if (!isParty) {
+        return reply
+          .status(403)
+          .send({ code: "FORBIDDEN", message: "not a party to this contract" });
+      }
+      if (c.status !== "disputed") {
+        return reply.status(409).send({
+          code: "INVALID_STATE",
+          message: `dispute brief only accepted for disputed contracts (status='${c.status}')`,
+        });
+      }
+
+      const outputHash = input.outputHash ?? sha256Hex(input.result);
+      const inputHash =
+        input.inputHash ??
+        sha256Hex({
+          contractId: c.id,
+          submission: c.submissionPayload,
+          modelId: input.modelId,
+        });
+
+      const row = await prisma.aiOutput.create({
+        data: {
+          contractId: c.id,
+          kind: "dispute_brief",
+          modelId: input.modelId,
+          modelVersion: input.modelVersion,
+          inputHash,
+          outputHash,
+          resultJson: input.result,
+          similarityScore: input.result.similarity_score,
+        },
+      });
+      return serializeOutput(row);
+    },
+  );
+
+  // GET /contracts/:id/ai-outputs?kind=contract_copilot|dispute_brief
+  app.get<{ Params: { id: string }; Querystring: { kind?: string } }>(
+    "/contracts/:id/ai-outputs",
+    async (req, reply) => {
+      const claims = app.requireAuth(req);
+      const c = await prisma.contract.findUnique({ where: { id: req.params.id } });
+      if (!c) return reply.status(404).send({ code: "NOT_FOUND", message: "contract not found" });
+      const isParty =
+        c.customerAddress === claims.sub || c.assigneeAddress === claims.sub;
+      if (!isParty) {
+        return reply
+          .status(403)
+          .send({ code: "FORBIDDEN", message: "not a party to this contract" });
+      }
+      const kindFilter = req.query.kind;
+      const kind =
+        kindFilter === "contract_copilot" || kindFilter === "dispute_brief"
+          ? kindFilter
+          : undefined;
+      const rows = await prisma.aiOutput.findMany({
+        where: { contractId: c.id, ...(kind ? { kind } : {}) },
+        orderBy: { createdAt: "desc" },
+      });
+      return rows.map(serializeOutput);
+    },
+  );
+};
