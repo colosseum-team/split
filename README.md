@@ -32,6 +32,7 @@ This repository is in active hackathon build phase.
 
 - `frontend/` - React + TypeScript + Vite application (UI, onboarding flow, contract list screens).
 - `backend/` - API layer and business logic (auth by wallet signature, role model, contracts endpoints).
+- `qvac-worker/` - dedicated AI worker process for QVAC inference (called by backend via HTTP).
 - `contracts/` - Solana smart contracts / on-chain integration layer.
 - `docs/` - architecture, plan, demo flow, and submission support docs.
 
@@ -52,6 +53,15 @@ This repository is in active hackathon build phase.
    - `npm run dev --workspace frontend`
 3. (Planned) run backend:
    - `npm run dev --workspace backend`
+
+### Local run in Docker (hot reload)
+
+- Start dev stack (frontend + backend + postgres):
+  - `docker compose -f docker-compose.dev.yml up -d`
+- Frontend dev server:
+  - [http://localhost:5173](http://localhost:5173)
+- Backend API:
+  - [http://localhost:4000/health](http://localhost:4000/health)
 
 ## What is implemented vs planned
 

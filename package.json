@@ -6,7 +6,8 @@
     "frontend",
     "backend",
     "contracts",
-    "landing"
+    "landing",
+    "qvac-worker"
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",

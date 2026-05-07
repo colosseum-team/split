@@ -4,10 +4,11 @@ This document describes the backend-side QVAC flow for `split`.
 
 ## Goal
 
-Move AI execution from browser runtime to backend runtime:
+Move AI execution from browser runtime to a dedicated QVAC worker runtime:
 
 - frontend sends AI input to backend;
-- backend executes QVAC (`@qvac/llm-llamacpp`, `@qvac/embed-llamacpp`);
+- backend forwards AI input to `qvac-worker` via HTTP;
+- `qvac-worker` executes QVAC (`@qvac/llm-llamacpp`, `@qvac/embed-llamacpp`) in Bare-compatible runtime;
 - backend stores normalized output in `AiOutput`;
 - frontend receives persisted result payload.
 
@@ -19,12 +20,14 @@ Add to `backend/.env`:
 QVAC_ENABLED=true
 QVAC_MODEL_ID=qvac-llamacpp
 QVAC_MODEL_VERSION=0.17.4
+QVAC_WORKER_URL=http://localhost:4100
 ```
 
-Install backend dependencies:
+Install backend and worker dependencies:
 
 ```bash
 npm install --workspace backend
+npm install --workspace qvac-worker
 ```
 
 ## Endpoints
@@ -56,6 +59,12 @@ Response includes:
 
 - persisted `AiOutput` metadata;
 - `result` in frontend-friendly camelCase shape.
+
+### POST `/ai/copilot-preview`
+
+Runs the same copilot inference without requiring a contract id and without writing `AiOutput`.
+
+Use this route from contract creation UI where the contract is not saved yet.
 
 ### POST `/contracts/:id/dispute-run`
 

@@ -11,6 +11,7 @@ import { authRoutes } from './routes/auth.js'
 import { meRoutes } from './routes/me.js'
 import { contractsRoutes } from './routes/contracts.js'
 import { aiOutputsRoutes } from './routes/ai-outputs.js'
+import { openApiSpec } from './docs/openapi.js'
 
 export async function buildApp() {
   const app = Fastify({
@@ -42,6 +43,31 @@ export async function buildApp() {
   await app.register(meRoutes)
   await app.register(contractsRoutes)
   await app.register(aiOutputsRoutes)
+
+  app.get('/docs/openapi.json', async () => openApiSpec)
+
+  app.get('/docs', async (_req, reply) => {
+    return reply.type('text/html').send(`<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Split Backend Swagger</title>
+    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
+  </head>
+  <body style="margin:0">
+    <div id="swagger-ui"></div>
+    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+    <script>
+      window.ui = SwaggerUIBundle({
+        url: '/docs/openapi.json',
+        dom_id: '#swagger-ui',
+        deepLinking: true,
+      })
+    </script>
+  </body>
+</html>`)
+  })
 
   return app
 }

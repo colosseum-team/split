@@ -35,6 +35,11 @@ Responsibilities:
    curl http://localhost:4000/health
    ```
 
+4. API docs (Swagger):
+
+   - Open UI: `http://localhost:4000/docs`
+   - Raw OpenAPI JSON: `http://localhost:4000/docs/openapi.json`
+
 ## Endpoints
 
 - `POST /auth/nonce` — issue a sign-in nonce for a wallet.
@@ -56,6 +61,7 @@ Responsibilities:
 - `POST /contracts/:id/dispute-output` — store QVAC dispute brief.
 - `POST /contracts/:id/copilot-run` — run QVAC contract copilot on backend and store output.
 - `POST /contracts/:id/dispute-run` — run QVAC dispute brief on backend and store output.
+- `POST /ai/copilot-preview` — run QVAC contract copilot without persisting output.
 - `GET /contracts/:id/ai-outputs?kind=...` — list AI outputs for a contract.
 
 ## QVAC modes

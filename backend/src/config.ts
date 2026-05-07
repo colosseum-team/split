@@ -30,6 +30,7 @@ const Env = z.object({
     .transform((v) => v === 'true'),
   QVAC_MODEL_ID: z.string().default('qvac-llamacpp'),
   QVAC_MODEL_VERSION: z.string().default('unknown'),
+  QVAC_WORKER_URL: z.string().url().default('http://localhost:4100'),
 })
 
 export const config = Env.parse(process.env)
