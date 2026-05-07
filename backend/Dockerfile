@@ -7,16 +7,30 @@ WORKDIR /app
 ARG NPM_TOKEN
 ARG QVAC_NPM_REGISTRY=https://registry.npmjs.org
 
-RUN apt-get update -y \
-    && apt-get install -y --no-install-recommends openssl ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+RUN DEBIAN_FRONTEND=noninteractive apt-get update -y \
+    && apt-get install -y --no-install-recommends \
+    openssl \
+    ca-certificates \
+    libgomp1 \
+    libatomic1 \
+    libstdc++6 \
+    libvulkan1 \
+    mesa-vulkan-drivers \
+    && rm -rf /var/lib/apt/lists/* \
+    && ldconfig
 
 COPY package.json package-lock.json ./
+COPY patches ./patches
 COPY backend/package.json ./backend/
 
 RUN if [ -n "$NPM_TOKEN" ]; then \
       printf "@qvac:registry=%s\n//registry.npmjs.org/:_authToken=%s\n" "$QVAC_NPM_REGISTRY" "$NPM_TOKEN" > .npmrc; \
     fi \
+    && npm config set fetch-retries 5 \
+    && npm config set fetch-retry-factor 2 \
+    && npm config set fetch-retry-mintimeout 10000 \
+    && npm config set fetch-retry-maxtimeout 120000 \
+    && npm config set prefer-offline true \
     && npm install --workspaces=false --include-workspace-root \
     && npm install --workspace backend --include-workspace-root --no-save \
     && rm -f .npmrc
@@ -32,9 +46,17 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-RUN apt-get update -y \
-    && apt-get install -y --no-install-recommends openssl ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+RUN DEBIAN_FRONTEND=noninteractive apt-get update -y \
+    && apt-get install -y --no-install-recommends \
+    openssl \
+    ca-certificates \
+    libgomp1 \
+    libatomic1 \
+    libstdc++6 \
+    libvulkan1 \
+    mesa-vulkan-drivers \
+    && rm -rf /var/lib/apt/lists/* \
+    && ldconfig
 
 COPY --from=builder /app /app
 

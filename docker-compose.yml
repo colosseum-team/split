@@ -48,8 +48,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      qvac-worker:
-        condition: service_started
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgres://split:split@postgres:5432/split}
       JWT_SECRET: ${JWT_SECRET:-dev-only-jwt-secret-change-me-please}
@@ -64,21 +62,9 @@ services:
       QVAC_ENABLED: ${QVAC_ENABLED:-true}
       QVAC_MODEL_ID: ${QVAC_MODEL_ID:-qvac-llamacpp}
       QVAC_MODEL_VERSION: ${QVAC_MODEL_VERSION:-0.17.4}
-      QVAC_WORKER_URL: ${QVAC_WORKER_URL:-http://qvac-worker:4100}
+      QVAC_RPC_INIT_TIMEOUT_MS: '900000'
     ports:
       - '4000:4000'
-
-  qvac-worker:
-    build:
-      context: .
-      dockerfile: qvac-worker/Dockerfile
-      args:
-        NPM_TOKEN: ${NPM_TOKEN:-}
-        QVAC_NPM_REGISTRY: ${QVAC_NPM_REGISTRY:-https://registry.npmjs.org}
-    container_name: split-qvac-worker
-    restart: unless-stopped
-    ports:
-      - '4100:4100'
 
   landing:
     build:

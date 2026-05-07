@@ -1,0 +1,18 @@
+diff --git a/node_modules/@qvac/sdk/dist/client/rpc/node-rpc-client.js b/node_modules/@qvac/sdk/dist/client/rpc/node-rpc-client.js
+index 2fcb766..e5d61d6 100644
+--- a/node_modules/@qvac/sdk/dist/client/rpc/node-rpc-client.js
++++ b/node_modules/@qvac/sdk/dist/client/rpc/node-rpc-client.js
+@@ -11,7 +11,12 @@ import { initializeConfig } from "../init-hooks.js";
+ import { resolveConfig } from "../config-loader/resolve-config.node.js";
+ import { getClientLogger } from "../../logging/index.js";
+ import { RPCInitTimeoutError } from "../../utils/errors-client.js";
+-const RPC_INIT_TIMEOUT_MS = 30_000;
++/** @see QVAC_RPC_INIT_TIMEOUT_MS (fallback 900_000 ms if unset / invalid) */
++const RPC_INIT_TIMEOUT_MS = (() => {
++    const raw = process.env["QVAC_RPC_INIT_TIMEOUT_MS"];
++    const n = raw ? Number(raw) : NaN;
++    return Number.isFinite(n) && n > 0 ? n : 900_000;
++})();
+ const logger = getClientLogger();
+ const __filename = fileURLToPath(import.meta.url);
+ const __dirname = path.dirname(__filename);

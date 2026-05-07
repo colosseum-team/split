@@ -4,11 +4,10 @@ This document describes the backend-side QVAC flow for `split`.
 
 ## Goal
 
-Move AI execution from browser runtime to a dedicated QVAC worker runtime:
+Move AI execution from browser runtime to backend runtime:
 
 - frontend sends AI input to backend;
-- backend forwards AI input to `qvac-worker` via HTTP;
-- `qvac-worker` executes QVAC (`@qvac/llm-llamacpp`, `@qvac/embed-llamacpp`) in Bare-compatible runtime;
+- backend executes QVAC via `@qvac/sdk`;
 - backend stores normalized output in `AiOutput`;
 - frontend receives persisted result payload.
 
@@ -20,15 +19,41 @@ Add to `backend/.env`:
 QVAC_ENABLED=true
 QVAC_MODEL_ID=qvac-llamacpp
 QVAC_MODEL_VERSION=0.17.4
-QVAC_WORKER_URL=http://localhost:4100
 ```
 
-Install backend and worker dependencies:
+Install backend dependencies:
 
 ```bash
 npm install --workspace backend
-npm install --workspace qvac-worker
 ```
+
+### Docker (Bare + `@qvac/llm-llamacpp`)
+
+The llama.ggml **prebuilt `.bare`** binary links **`libvulkan.so.1`**. On Debian slim (including `node:*-bookworm-slim`) only installing `openssl`/`libgomp` is **not enough**: dynamic loader cannot resolve Vulkan, and the Bare worker never completes IPC connect (timeouts like `RPC initialization timed out …`).
+
+**Fix baked into this repo:**
+
+- **`backend/Dockerfile.dev`** is the dev backend image: same native stack as production (`libvulkan1`, `mesa-vulkan-drivers`, **`libatomic1`** for `rocksdb-native` under Bare, `libstdc++6`, `libgomp1`, …). Dev compose **builds** this image instead of running `apt-get` on every container start (avoids silent `apt` failures without `set -e` and guarantees `libatomic.so.1` is on disk before Node runs).
+- **`docker-compose.dev.yml`** uses that image and runs the install/dev script with **`set -e`**.
+- **`backend/Dockerfile`** (production) installs the same package set.
+
+Checks:
+
+1. Prefer the **native CPU architecture** of the daemon (Apple Silicon hosts: **linux/arm64** images; avoid forcing **linux/amd64** globally — Bare + GGUF startup becomes unrealistic).
+2. After `compose up`, `docker logs …` should eventually show Bare / QVAC messages; **`GET /health`** includes `qvac.state` (`warming` → `ready`).
+3. In a pinch, verify preload inside the backend container:
+
+   ```bash
+   docker compose -f docker-compose.dev.yml exec backend sh -lc '
+   ARCH=$(uname -m)
+   case "$ARCH" in aarch64|arm64) DIR=linux-arm64 ;; *) DIR=linux-x64 ;; esac
+   ldd "node_modules/@qvac/llm-llamacpp/prebuilds/$DIR/qvac__llm-llamacpp.bare"
+   '
+   ```
+
+   Lines ending in `=> not found` mean a missing distro library (Vulkan was the usual offender before we added Mesa).
+
+4. If Bare logs `libatomic.so.1: cannot open shared object file`, the container does not have **`libatomic1`** (rebuild the backend image: `docker compose -f docker-compose.dev.yml build --no-cache backend`).
 
 ## Endpoints
 

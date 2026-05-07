@@ -18,15 +18,16 @@ services:
       retries: 10
 
   backend:
-    image: node:22-bookworm-slim
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.dev
+    image: split-backend-dev:local
     container_name: split-backend-dev
     working_dir: /workspace
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
-      qvac-worker:
-        condition: service_started
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgres://split:split@postgres:5432/split}
       JWT_SECRET: ${JWT_SECRET:-dev-only-jwt-secret-change-me-please}
@@ -41,42 +42,23 @@ services:
       QVAC_ENABLED: ${QVAC_ENABLED:-true}
       QVAC_MODEL_ID: ${QVAC_MODEL_ID:-qvac-llamacpp}
       QVAC_MODEL_VERSION: ${QVAC_MODEL_VERSION:-0.17.4}
-      QVAC_WORKER_URL: ${QVAC_WORKER_URL:-http://qvac-worker:4100}
+      QVAC_RPC_INIT_TIMEOUT_MS: '900000'
     ports:
       - '4000:4000'
+    shm_size: '512mb'
     volumes:
       - ./:/workspace
+      # Single root node_modules volume so workspaces hoist @qvac/sdk to node_modules/@qvac/sdk (patch-package path).
       - split-node-modules:/workspace/node_modules
-      - split-backend-node-modules:/workspace/backend/node_modules
     command: >
       sh -c "
-      apt-get update -y &&
-      apt-get install -y --no-install-recommends openssl ca-certificates &&
+      set -e &&
       npm install --workspaces=false --include-workspace-root &&
       npm install --workspace backend --include-workspace-root --no-save &&
+      npx patch-package &&
       npm run prisma:generate --workspace backend &&
       npm run prisma:deploy --workspace backend &&
       npm run dev --workspace backend
-      "
-
-  qvac-worker:
-    image: node:22-bookworm-slim
-    container_name: split-qvac-worker-dev
-    working_dir: /workspace
-    restart: unless-stopped
-    environment:
-      PORT: 4100
-    ports:
-      - '4100:4100'
-    volumes:
-      - ./:/workspace
-      - split-node-modules:/workspace/node_modules
-      - split-qvac-worker-node-modules:/workspace/qvac-worker/node_modules
-    command: >
-      sh -c "
-      npm install --workspaces=false --include-workspace-root &&
-      npm install --workspace qvac-worker --include-workspace-root --no-save &&
-      npm run dev --workspace qvac-worker
       "
 
   frontend:
@@ -106,6 +88,4 @@ services:
 volumes:
   split-postgres-dev-data:
   split-node-modules:
-  split-backend-node-modules:
   split-frontend-node-modules:
-  split-qvac-worker-node-modules:
