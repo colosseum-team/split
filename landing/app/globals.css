@@ -41,7 +41,7 @@ body {
     ui-sans-serif,
     system-ui,
     -apple-system,
-    "Segoe UI",
+    'Segoe UI',
     Roboto,
     sans-serif;
   font-size: 16px;
@@ -180,21 +180,13 @@ main {
   justify-content: center;
   padding: 80px 28px 100px;
   background:
-    radial-gradient(
-      ellipse 80% 60% at 50% 0%,
-      rgba(124, 92, 255, 0.12),
-      transparent 60%
-    ),
-    radial-gradient(
-      ellipse 60% 50% at 80% 30%,
-      rgba(46, 204, 113, 0.05),
-      transparent 60%
-    );
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(124, 92, 255, 0.12), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 30%, rgba(46, 204, 113, 0.05), transparent 60%);
   overflow: hidden;
 }
 
 .lp-hero::before {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0;
   background-image:
@@ -454,7 +446,7 @@ main {
 }
 
 .lp-audience-list li::before {
-  content: "";
+  content: '';
   display: inline-block;
   flex-shrink: 0;
   margin-top: 7px;
@@ -543,7 +535,7 @@ main {
 }
 
 .lp-roadmap::before {
-  content: "";
+  content: '';
   position: absolute;
   top: 28px;
   left: 8%;
@@ -569,7 +561,7 @@ main {
 }
 
 .lp-roadmap-item::before {
-  content: "";
+  content: '';
   position: absolute;
   top: 22px;
   left: 50%;
@@ -584,11 +576,7 @@ main {
 
 .lp-roadmap-item.now {
   border-color: var(--accent-border);
-  background: linear-gradient(
-    180deg,
-    var(--accent-soft) 0%,
-    var(--card) 70%
-  );
+  background: linear-gradient(180deg, var(--accent-soft) 0%, var(--card) 70%);
 }
 
 .lp-roadmap-item.now::before {
@@ -663,7 +651,7 @@ main {
 }
 
 .lp-faq-q::after {
-  content: "+";
+  content: '+';
   font-size: 22px;
   color: var(--fg-dim);
   font-weight: 400;

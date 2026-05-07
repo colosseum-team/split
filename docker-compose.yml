@@ -12,11 +12,11 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-split}
       POSTGRES_DB: ${POSTGRES_DB:-split}
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - split-postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-split} -d ${POSTGRES_DB:-split}"]
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-split} -d ${POSTGRES_DB:-split}']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -28,7 +28,7 @@ services:
     container_name: split-frontend
     restart: unless-stopped
     ports:
-      - "3000:80"
+      - '3000:80'
 
   landing:
     build:
@@ -47,7 +47,7 @@ services:
       HOSTNAME: 0.0.0.0
       PORT: 3000
     ports:
-      - "3001:3000"
+      - '3001:3000'
 
 volumes:
   split-postgres-data:

@@ -1,4 +1,4 @@
-import { CtaButton } from "./CtaButton";
+import { CtaButton } from './CtaButton'
 
 export function Navbar() {
   return (
@@ -17,7 +17,7 @@ export function Navbar() {
         <CtaButton>Try the demo</CtaButton>
       </div>
     </header>
-  );
+  )
 }
 
 function LogoMark() {
@@ -31,12 +31,7 @@ function LogoMark() {
       aria-hidden="true"
     >
       <rect width="28" height="28" rx="8" fill="url(#lp-logo-grad)" />
-      <path
-        d="M9 8.5h10M9 13.5h7M9 18.5h4"
-        stroke="white"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
+      <path d="M9 8.5h10M9 13.5h7M9 18.5h4" stroke="white" strokeWidth="2" strokeLinecap="round" />
       <defs>
         <linearGradient
           id="lp-logo-grad"
@@ -51,5 +46,5 @@ function LogoMark() {
         </linearGradient>
       </defs>
     </svg>
-  );
+  )
 }

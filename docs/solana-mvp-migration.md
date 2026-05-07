@@ -58,15 +58,15 @@ flowchart LR
 
 ### Ключевые точки потока
 
-| Этап | Роль | Действие | Результат |
-|---|---|---|---|
-| Старт | — | `WalletConnectButton` | `useUserStore.walletAddress` записан |
-| Выбор роли | — | `RoleSelector` (две карточки) | `useUserStore.role` записан, `seedPerformerMockOnce` для performer |
-| Список контрактов | обе | `HomePage` со статус-табами | `customer` видит кнопку «+», `performer` — без неё |
-| Выбор шаблона | customer | `SelectTemplatePage` | переход на `/contracts/create/:templateKey` |
-| Заполнение формы | customer | `ContractForm` (6 шагов) | `useContractsStore.create()` |
-| Подписание | обе | `signMessage(SHA256(contractText))` | статус → `SIGNED` |
-| Подтверждение работ | customer | `ConfirmCompletionModal` | статус → `COMPLETED` |
+| Этап                | Роль     | Действие                            | Результат                                                          |
+| ------------------- | -------- | ----------------------------------- | ------------------------------------------------------------------ |
+| Старт               | —        | `WalletConnectButton`               | `useUserStore.walletAddress` записан                               |
+| Выбор роли          | —        | `RoleSelector` (две карточки)       | `useUserStore.role` записан, `seedPerformerMockOnce` для performer |
+| Список контрактов   | обе      | `HomePage` со статус-табами         | `customer` видит кнопку «+», `performer` — без неё                 |
+| Выбор шаблона       | customer | `SelectTemplatePage`                | переход на `/contracts/create/:templateKey`                        |
+| Заполнение формы    | customer | `ContractForm` (6 шагов)            | `useContractsStore.create()`                                       |
+| Подписание          | обе      | `signMessage(SHA256(contractText))` | статус → `SIGNED`                                                  |
+| Подтверждение работ | customer | `ConfirmCompletionModal`            | статус → `COMPLETED`                                               |
 
 ---
 
@@ -258,37 +258,37 @@ export type ContractStatus =
   | 'PARTIALLY_SIGNED'
   | 'SIGNED'
   | 'COMPLETED'
-  | 'DECLINED';
+  | 'DECLINED'
 
-export type TemplateKey = 'landing-development' | 'logo-design';
+export type TemplateKey = 'landing-development' | 'logo-design'
 
 export type Party = {
-  firstName: string;
-  lastName: string;
-  email: string;
-  companyName?: string;
-  walletAddress?: string;
-};
+  firstName: string
+  lastName: string
+  email: string
+  companyName?: string
+  walletAddress?: string
+}
 
 export type Contract = {
-  id: string;
-  createdAt: string;
-  createdByWallet: string;
-  status: ContractStatus;
-  templateKey: TemplateKey;
-  customer: Party;
-  performer: Party;
-  technicalAssignment: string;        // изначально из templates[templateKey].defaultTechnicalAssignment
-  subject: string;
-  startDate: string;
-  endDate: string;
-  amount: number;
-  currency: string;
-  jurisdiction: string;
-  additionalTerms?: string;
-  contentHash?: string;
-  signatures: { customer?: string; performer?: string };
-};
+  id: string
+  createdAt: string
+  createdByWallet: string
+  status: ContractStatus
+  templateKey: TemplateKey
+  customer: Party
+  performer: Party
+  technicalAssignment: string // изначально из templates[templateKey].defaultTechnicalAssignment
+  subject: string
+  startDate: string
+  endDate: string
+  amount: number
+  currency: string
+  jurisdiction: string
+  additionalTerms?: string
+  contentHash?: string
+  signatures: { customer?: string; performer?: string }
+}
 ```
 
 ### Жизненный цикл статусов
@@ -311,18 +311,22 @@ stateDiagram-v2
 ```ts
 // entities/contract/model/templates.ts
 export type TemplateDefinition = {
-  key: TemplateKey;
-  label: string;                                      // 'Landing page development'
-  description: string;                                // короткое описание для карточки
-  defaultSubject: string;                             // 'Разработка лендинга для проекта…'
-  defaultTechnicalAssignment: string;                 // длинный текст ТЗ для редактирования
-  renderContractText: (contract: Contract) => string; // финальный текст договора
-};
+  key: TemplateKey
+  label: string // 'Landing page development'
+  description: string // короткое описание для карточки
+  defaultSubject: string // 'Разработка лендинга для проекта…'
+  defaultTechnicalAssignment: string // длинный текст ТЗ для редактирования
+  renderContractText: (contract: Contract) => string // финальный текст договора
+}
 
 export const TEMPLATES: Record<TemplateKey, TemplateDefinition> = {
-  'landing-development': { /* … */ },
-  'logo-design':         { /* … */ },
-};
+  'landing-development': {
+    /* … */
+  },
+  'logo-design': {
+    /* … */
+  },
+}
 ```
 
 ### Контракт `renderContractText`
@@ -340,14 +344,14 @@ export const TEMPLATES: Record<TemplateKey, TemplateDefinition> = {
 
 `features/contract/create/ui/ContractForm.tsx` принимает `templateKey` из URL, использует `FormWrapper` + `react-hook-form`. `defaultValues` инициализируются из `TEMPLATES[templateKey]` + `useUserStore.profile`.
 
-| Шаг | Компонент | Поля | Особенности |
-|---|---|---|---|
-| 1 | `Step1Parties` | `customer.{firstName,lastName,email,companyName}` | Поля исполнителя read-only, прокинуты из `useUserStore.profile` |
-| 2 | `Step2TechnicalAssignment` | `technicalAssignment` | **Fill-height textarea**, prefilled из `defaultTechnicalAssignment` |
-| 3 | `Step3Subject` | `subject` | Input, prefilled из `defaultSubject` |
-| 4 | `Step4Duration` | `startDate`, `endDate` | Два `DateInput` |
-| 5 | `Step5Cost` | `amount`, `currency` | Input number + Dropdown валют (упрощённо, без `paymentTerms`) |
-| 6 | `Step6Jurisdiction` | `jurisdiction` | Dropdown стран |
+| Шаг | Компонент                  | Поля                                              | Особенности                                                         |
+| --- | -------------------------- | ------------------------------------------------- | ------------------------------------------------------------------- |
+| 1   | `Step1Parties`             | `customer.{firstName,lastName,email,companyName}` | Поля исполнителя read-only, прокинуты из `useUserStore.profile`     |
+| 2   | `Step2TechnicalAssignment` | `technicalAssignment`                             | **Fill-height textarea**, prefilled из `defaultTechnicalAssignment` |
+| 3   | `Step3Subject`             | `subject`                                         | Input, prefilled из `defaultSubject`                                |
+| 4   | `Step4Duration`            | `startDate`, `endDate`                            | Два `DateInput`                                                     |
+| 5   | `Step5Cost`                | `amount`, `currency`                              | Input number + Dropdown валют (упрощённо, без `paymentTerms`)       |
+| 6   | `Step6Jurisdiction`        | `jurisdiction`                                    | Dropdown стран                                                      |
 
 ### Доработка `Textarea` для Step2
 
@@ -376,9 +380,9 @@ const onSubmit = (data) => {
     templateKey,
     performer: useUserStore.getState().profile,
     createdByWallet: useUserStore.getState().walletAddress,
-  });
-  navigate(`/contracts/${contract.id}`);
-};
+  })
+  navigate(`/contracts/${contract.id}`)
+}
 ```
 
 ---
@@ -389,24 +393,24 @@ const onSubmit = (data) => {
 
 ```tsx
 // app/providers/SolanaProvider.tsx
-import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
-import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
-import { clusterApiUrl } from '@solana/web3.js';
-import { useMemo } from 'react';
-import '@solana/wallet-adapter-react-ui/styles.css';
+import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react'
+import { WalletModalProvider } from '@solana/wallet-adapter-react-ui'
+import { clusterApiUrl } from '@solana/web3.js'
+import { useMemo } from 'react'
+import '@solana/wallet-adapter-react-ui/styles.css'
 
-const endpoint = clusterApiUrl('devnet');
+const endpoint = clusterApiUrl('devnet')
 
 export function SolanaProvider({ children }: { children: React.ReactNode }) {
   // Wallet Standard auto-discovery: пустой массив достаточен.
-  const wallets = useMemo(() => [], []);
+  const wallets = useMemo(() => [], [])
   return (
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets} autoConnect>
         <WalletModalProvider>{children}</WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>
-  );
+  )
 }
 ```
 
@@ -414,27 +418,25 @@ export function SolanaProvider({ children }: { children: React.ReactNode }) {
 
 ```ts
 // features/contract/sign/lib/useContractSigning.ts
-import { useWallet } from '@solana/wallet-adapter-react';
-import { sha256 } from '@noble/hashes/sha256';
-import { bytesToHex } from '@noble/hashes/utils';
-import bs58 from 'bs58';
-import { TEMPLATES } from '@/entities/contract/model/templates';
-import { useContractsStore } from '@/entities/contract/model/store';
+import { useWallet } from '@solana/wallet-adapter-react'
+import { sha256 } from '@noble/hashes/sha256'
+import { bytesToHex } from '@noble/hashes/utils'
+import bs58 from 'bs58'
+import { TEMPLATES } from '@/entities/contract/model/templates'
+import { useContractsStore } from '@/entities/contract/model/store'
 
 export function useContractSigning() {
-  const { publicKey, signMessage } = useWallet();
+  const { publicKey, signMessage } = useWallet()
 
   return async (contract: Contract, role: 'customer' | 'performer') => {
-    if (!publicKey || !signMessage) throw new Error('Wallet not connected');
+    if (!publicKey || !signMessage) throw new Error('Wallet not connected')
 
-    const text = TEMPLATES[contract.templateKey].renderContractText(contract);
-    const hash = sha256(new TextEncoder().encode(text));
-    const signature = await signMessage(hash);
+    const text = TEMPLATES[contract.templateKey].renderContractText(contract)
+    const hash = sha256(new TextEncoder().encode(text))
+    const signature = await signMessage(hash)
 
-    useContractsStore
-      .getState()
-      .sign(contract.id, role, bs58.encode(signature), bytesToHex(hash));
-  };
+    useContractsStore.getState().sign(contract.id, role, bs58.encode(signature), bytesToHex(hash))
+  }
 }
 ```
 
@@ -444,11 +446,11 @@ export function useContractSigning() {
 // features/wallet/lib/useWalletAuth.ts
 useEffect(() => {
   if (publicKey) {
-    useUserStore.getState().setWalletAddress(publicKey.toBase58());
+    useUserStore.getState().setWalletAddress(publicKey.toBase58())
   } else {
-    useUserStore.getState().clear(); // disconnect → стираем role и profile
+    useUserStore.getState().clear() // disconnect → стираем role и profile
   }
-}, [publicKey]);
+}, [publicKey])
 ```
 
 ---
@@ -460,13 +462,13 @@ useEffect(() => {
 ```ts
 // entities/user/model/store.ts
 type UserState = {
-  walletAddress: string | null;
-  role: 'customer' | 'performer' | null;
-  profile: Party | null;             // хардкод-профиль для performer
-  setWalletAddress: (addr: string | null) => void;
-  setRole: (role: 'customer' | 'performer') => void;
-  clear: () => void;
-};
+  walletAddress: string | null
+  role: 'customer' | 'performer' | null
+  profile: Party | null // хардкод-профиль для performer
+  setWalletAddress: (addr: string | null) => void
+  setRole: (role: 'customer' | 'performer') => void
+  clear: () => void
+}
 ```
 
 При `setRole('performer')` — записывается дефолтный `profile` из `entities/user/model/defaults.ts` и однократно вызывается `useContractsStore.seedPerformerMockOnce()`.
@@ -476,14 +478,14 @@ type UserState = {
 ```ts
 // entities/contract/model/store.ts
 type ContractsState = {
-  contracts: Contract[];
-  hasSeededPerformerMock: boolean;
-  create: (input: ContractInput) => Contract;
-  sign: (id: string, role: 'customer' | 'performer', signature: string, hash: string) => void;
-  confirmCompletion: (id: string) => void;
-  getById: (id: string) => Contract | undefined;
-  seedPerformerMockOnce: () => void;
-};
+  contracts: Contract[]
+  hasSeededPerformerMock: boolean
+  create: (input: ContractInput) => Contract
+  sign: (id: string, role: 'customer' | 'performer', signature: string, hash: string) => void
+  confirmCompletion: (id: string) => void
+  getById: (id: string) => Contract | undefined
+  seedPerformerMockOnce: () => void
+}
 ```
 
 Оба стора оборачиваются в `persist` middleware с ключами `solana-mvp-user` и `solana-mvp-contracts`.
@@ -521,20 +523,20 @@ type ContractsState = {
 
 ### Выбрасываем
 
-| Категория | Что именно |
-|---|---|
-| **Auth/Identity** | `entities/auth`, `entities/profile`, `entities/kyc`, Privy, Telegram WebApp, Sumsub, email-модалки |
-| **Billing** | `entities/billing`, `BillingApi`, `ContractsOverModal` |
-| **Templates v2** | `entities/template`, `entities/edition`, `entities/signatory`, `templateApi`, `editions/parameters` |
-| **TON** | `entities/ton`, `features/ton/*`, `TonConnect` |
-| **Доп. формы** | NDAForm, RentForm, LoanForm и весь `templateId === N` свитч в старом `ContractForm` |
-| **Хуки** | `useFormDataCache`, `useContractWorkflow`, `useContractSync`, `useContractSignatures`, `useContractMutations`, `useContractQueries` |
-| **Селекторы** | `extractEditionActions`, `selectEditionById`, `convertContractToExtendedFormData` |
-| **Поиск/фильтры** | `ContractSearchInput`, advanced filters (jurisdiction/parties/dateRange/contractType) |
-| **Документы** | `DocumentViewer`, `@react-pdf/renderer`, QR-сканер (`qrcode`, `html5-qrcode`) |
-| **Сетевой слой** | `react-query`, `axios`, любой WebSocket |
-| **UI-библиотеки** | `swiper`, `nprogress` |
-| **Иконки** | весь `shared/icons` кроме `LogoIcon`; все `*.svg` из `public/assets/icons/` (заменяем на `@heroicons/react`) |
+| Категория         | Что именно                                                                                                                          |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **Auth/Identity** | `entities/auth`, `entities/profile`, `entities/kyc`, Privy, Telegram WebApp, Sumsub, email-модалки                                  |
+| **Billing**       | `entities/billing`, `BillingApi`, `ContractsOverModal`                                                                              |
+| **Templates v2**  | `entities/template`, `entities/edition`, `entities/signatory`, `templateApi`, `editions/parameters`                                 |
+| **TON**           | `entities/ton`, `features/ton/*`, `TonConnect`                                                                                      |
+| **Доп. формы**    | NDAForm, RentForm, LoanForm и весь `templateId === N` свитч в старом `ContractForm`                                                 |
+| **Хуки**          | `useFormDataCache`, `useContractWorkflow`, `useContractSync`, `useContractSignatures`, `useContractMutations`, `useContractQueries` |
+| **Селекторы**     | `extractEditionActions`, `selectEditionById`, `convertContractToExtendedFormData`                                                   |
+| **Поиск/фильтры** | `ContractSearchInput`, advanced filters (jurisdiction/parties/dateRange/contractType)                                               |
+| **Документы**     | `DocumentViewer`, `@react-pdf/renderer`, QR-сканер (`qrcode`, `html5-qrcode`)                                                       |
+| **Сетевой слой**  | `react-query`, `axios`, любой WebSocket                                                                                             |
+| **UI-библиотеки** | `swiper`, `nprogress`                                                                                                               |
+| **Иконки**        | весь `shared/icons` кроме `LogoIcon`; все `*.svg` из `public/assets/icons/` (заменяем на `@heroicons/react`)                        |
 
 ---
 
@@ -542,22 +544,22 @@ type ContractsState = {
 
 Ниже — план реализации с привязкой к id из исходного плана. Этапы упорядочены по зависимостям.
 
-| # | id | Описание | Статус |
-|---|---|---|---|
-| 1 | `deps-and-aliases` | Зависимости в `frontend/package.json`, алиас `@/*` в `vite.config.ts` и `tsconfig.app.json`, полифиллы `buffer`/`process` | ✅ completed |
-| 2 | `design-system` | Шрифты в `public/assets/fonts`, CSS-токены и `@font-face` в `index.css`, `LogoIcon`, `constants/{countries,currencies}.ts` | ✅ completed |
-| 3 | `shared-ui` | Перенос форм и модалок 1:1, добавление `fillHeight` в `Textarea`, замена иконок на `@heroicons/react` | 🟡 in progress |
-| 4 | `contract-templates` | `entities/contract/model/templates.ts` с двумя шаблонами и `renderContractText` | ⏳ pending |
-| 5 | `stores` | `useUserStore`, `useContractsStore` с `persist` и `seedPerformerMockOnce` | ⏳ pending |
-| 6 | `providers-router` | `SolanaProvider`, `BrowserRouter`, `ProtectedRoute`, чистка демо `HomePage` с counter | ⏳ pending |
-| 7 | `wallet-feature` | `WalletConnectButton` + `useWalletAuth` (связка `publicKey` ↔ стор, clear при disconnect) | ⏳ pending |
-| 8 | `start-page` | `StartPage`: connect → `RoleSelector` → `navigate('/home')` | ⏳ pending |
-| 9 | `home-page` | `HomePage`: `Layout` + `Header` + `StatusFilterButtons` + список `ContractCard`, кнопка «+» только для `customer` | ⏳ pending |
-| 10 | `template-picker-page` | `SelectTemplatePage`: две карточки шаблонов | ⏳ pending |
-| 11 | `contract-form` | `ContractForm` с 6 шагами, prefilled из шаблона и профиля | ⏳ pending |
-| 12 | `summary-and-sign` | `ContractViewPage`: `ContractSummary` + кнопки `Sign contract` / `View contract text`, `useContractSigning` | ⏳ pending |
-| 13 | `confirm-completion` | `ConfirmCompletionModal` (только `customer` при `SIGNED`), запись `COMPLETED` в стор + `ResultModal` | ⏳ pending |
-| 14 | `cleanup-and-readme` | Удалить демо `increment-counter` и связанные файлы, обновить `frontend/README.md` | ⏳ pending |
+| #   | id                     | Описание                                                                                                                   | Статус         |
+| --- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| 1   | `deps-and-aliases`     | Зависимости в `frontend/package.json`, алиас `@/*` в `vite.config.ts` и `tsconfig.app.json`, полифиллы `buffer`/`process`  | ✅ completed   |
+| 2   | `design-system`        | Шрифты в `public/assets/fonts`, CSS-токены и `@font-face` в `index.css`, `LogoIcon`, `constants/{countries,currencies}.ts` | ✅ completed   |
+| 3   | `shared-ui`            | Перенос форм и модалок 1:1, добавление `fillHeight` в `Textarea`, замена иконок на `@heroicons/react`                      | 🟡 in progress |
+| 4   | `contract-templates`   | `entities/contract/model/templates.ts` с двумя шаблонами и `renderContractText`                                            | ⏳ pending     |
+| 5   | `stores`               | `useUserStore`, `useContractsStore` с `persist` и `seedPerformerMockOnce`                                                  | ⏳ pending     |
+| 6   | `providers-router`     | `SolanaProvider`, `BrowserRouter`, `ProtectedRoute`, чистка демо `HomePage` с counter                                      | ⏳ pending     |
+| 7   | `wallet-feature`       | `WalletConnectButton` + `useWalletAuth` (связка `publicKey` ↔ стор, clear при disconnect)                                  | ⏳ pending     |
+| 8   | `start-page`           | `StartPage`: connect → `RoleSelector` → `navigate('/home')`                                                                | ⏳ pending     |
+| 9   | `home-page`            | `HomePage`: `Layout` + `Header` + `StatusFilterButtons` + список `ContractCard`, кнопка «+» только для `customer`          | ⏳ pending     |
+| 10  | `template-picker-page` | `SelectTemplatePage`: две карточки шаблонов                                                                                | ⏳ pending     |
+| 11  | `contract-form`        | `ContractForm` с 6 шагами, prefilled из шаблона и профиля                                                                  | ⏳ pending     |
+| 12  | `summary-and-sign`     | `ContractViewPage`: `ContractSummary` + кнопки `Sign contract` / `View contract text`, `useContractSigning`                | ⏳ pending     |
+| 13  | `confirm-completion`   | `ConfirmCompletionModal` (только `customer` при `SIGNED`), запись `COMPLETED` в стор + `ResultModal`                       | ⏳ pending     |
+| 14  | `cleanup-and-readme`   | Удалить демо `increment-counter` и связанные файлы, обновить `frontend/README.md`                                          | ⏳ pending     |
 
 ### Граф зависимостей этапов
 

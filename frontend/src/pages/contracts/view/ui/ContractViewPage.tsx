@@ -1,10 +1,6 @@
 import { type FC, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import {
-  BoltIcon,
-  ChevronLeftIcon,
-  DocumentTextIcon,
-} from '@heroicons/react/24/outline'
+import { BoltIcon, ChevronLeftIcon, DocumentTextIcon } from '@heroicons/react/24/outline'
 import { useContractsStore } from '@/entities/contract'
 import { useUserStore } from '@/entities/user'
 import { ContractSummary } from '@/widgets/contract'

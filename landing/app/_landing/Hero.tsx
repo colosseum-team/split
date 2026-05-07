@@ -1,7 +1,6 @@
-import { CtaButton } from "./CtaButton";
+import { CtaButton } from './CtaButton'
 
-const GITHUB_URL =
-  process.env.NEXT_PUBLIC_GITHUB_URL ?? "https://github.com/CHANGE-ME";
+const GITHUB_URL = process.env.NEXT_PUBLIC_GITHUB_URL ?? 'https://github.com/CHANGE-ME'
 
 export function Hero() {
   return (
@@ -12,14 +11,11 @@ export function Hero() {
           Built on Solana
         </span>
 
-        <h1 className="lp-headline">
-          Freelance contracts that pay themselves.
-        </h1>
+        <h1 className="lp-headline">Freelance contracts that pay themselves.</h1>
 
         <p className="lp-subhead">
-          Non-custodial escrow for clients and freelancers. Lock funds in a
-          Solana smart contract, release them on delivery, pay fractions of a
-          cent in fees. No middleman.
+          Non-custodial escrow for clients and freelancers. Lock funds in a Solana smart contract,
+          release them on delivery, pay fractions of a cent in fees. No middleman.
         </p>
 
         <div className="lp-hero-actions">
@@ -47,5 +43,5 @@ export function Hero() {
         </div>
       </div>
     </section>
-  );
+  )
 }
