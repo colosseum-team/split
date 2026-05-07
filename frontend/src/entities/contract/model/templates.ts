@@ -1,7 +1,7 @@
 import { findCountryByCode } from '@/shared/constants/countries'
 import { findCurrencyByCode } from '@/shared/constants/currencies'
 
-export type ContractTemplateKey = 'landing-development' | 'logo-design'
+export type ContractTemplateKey = 'landing-development' | 'logo-design' | 'custom'
 
 export interface ContractTemplate {
   key: ContractTemplateKey
@@ -39,6 +39,19 @@ export interface ContractTextData {
 }
 
 export const CONTRACT_TEMPLATES: ReadonlyArray<ContractTemplate> = [
+  {
+    key: 'custom',
+    title: 'Custom contract',
+    shortTitle: 'Custom',
+    description:
+      'Start from scratch and write your own terms, scope, and conditions without preset wording.',
+    defaultSubject: '',
+    defaultTechnicalAssignment: '',
+    defaultJurisdictionCode: 'US',
+    defaultCurrencyCode: 'SOL',
+    defaultAmount: 0,
+    defaultDurationDays: 14,
+  },
   {
     key: 'landing-development',
     title: 'Landing page development',

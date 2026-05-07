@@ -5,6 +5,8 @@ import { scenarioPresets } from '../../ai/demoScenarios'
 type ContractCopilotPanelProps = {
   scenario: DemoScenario
   onImprove: (input: ContractDraft) => Promise<ContractCopilotResult>
+  sourceText?: string
+  onApplyScope?: (value: string) => void
 }
 
 type RequestState = 'idle' | 'loading' | 'success' | 'error'
@@ -19,7 +21,12 @@ const emptyDraft: ContractDraft = {
 const getInitialDraft = (scenario: DemoScenario): ContractDraft =>
   scenario === 'off' ? emptyDraft : scenarioPresets[scenario].contractDraft
 
-export function ContractCopilotPanel({ scenario, onImprove }: ContractCopilotPanelProps) {
+export function ContractCopilotPanel({
+  scenario,
+  onImprove,
+  sourceText,
+  onApplyScope,
+}: ContractCopilotPanelProps) {
   const [draft, setDraft] = useState<ContractDraft>(() => getInitialDraft(scenario))
   const [requestState, setRequestState] = useState<RequestState>('idle')
   const [errorMessage, setErrorMessage] = useState('')
@@ -42,7 +49,10 @@ export function ContractCopilotPanel({ scenario, onImprove }: ContractCopilotPan
     try {
       setRequestState('loading')
       setErrorMessage('')
-      const response = await onImprove(draft)
+      const response = await onImprove({
+        ...draft,
+        scope: sourceText ?? draft.scope,
+      })
       setResult(response)
       setSelectedRewrites(response.rewriteSuggestions.map((_, index) => index))
       setRequestState('success')
@@ -58,10 +68,14 @@ export function ContractCopilotPanel({ scenario, onImprove }: ContractCopilotPan
       selectedRewrites.includes(index),
     )
     if (selected.length === 0) return
-    setDraft((prev) => ({
-      ...prev,
-      scope: `${prev.scope}\n\nImproved scope:\n- ${selected.join('\n- ')}`,
-    }))
+    const nextScope = sourceText
+      ? selected.join('\n\n')
+      : `${draft.scope}\n\n- ${selected.join('\n- ')}`
+    if (onApplyScope) {
+      onApplyScope(nextScope)
+      return
+    }
+    setDraft((prev) => ({ ...prev, scope: nextScope }))
   }
 
   return (
@@ -83,8 +97,9 @@ export function ContractCopilotPanel({ scenario, onImprove }: ContractCopilotPan
         <label className="text-sm text-slate-300">
           Scope
           <textarea
-            value={draft.scope}
+            value={sourceText ?? draft.scope}
             onChange={(event) => setDraft((prev) => ({ ...prev, scope: event.target.value }))}
+            readOnly={!!sourceText}
             className="mt-1 h-24 w-full rounded-md border border-slate-600 bg-slate-950 px-3 py-2 text-slate-100"
           />
         </label>

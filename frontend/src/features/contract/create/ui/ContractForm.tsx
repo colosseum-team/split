@@ -3,7 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { type ContractTemplateKey, findTemplate, useContractsStore } from '@/entities/contract'
 import { useUserStore } from '@/entities/user'
-import { FormWrapper } from '@/shared/ui'
+import { createLocalAiService } from '@/features/ai/service'
+import { demoLocalAiAdapter } from '@/features/ai/adapters/demoLocalAiAdapter'
+import { qvacLocalAiAdapter } from '@/features/ai/adapters/qvacLocalAiAdapter'
+import type { DemoScenario, ContractDraft } from '@/features/ai/types'
+import { Button, FormWrapper } from '@/shared/ui'
 import { Step1Parties } from './steps/Step1Parties'
 import { Step2TechnicalAssignment } from './steps/Step2TechnicalAssignment'
 import { Step3Subject } from './steps/Step3Subject'
@@ -16,13 +20,8 @@ interface ContractFormProps {
   templateKey: ContractTemplateKey
 }
 
-const MOCK_PERFORMER = {
-  fullName: 'Maya Reyes',
-  email: 'maya.reyes@split.demo',
-  companyName: 'Independent contractor',
-}
-
 const TOTAL_STEPS = 6
+const MIN_TECHNICAL_ASSIGNMENT_CHARS_FOR_AI = 120
 
 const STEP_TITLES: Record<number, string> = {
   1: 'Parties',
@@ -36,6 +35,7 @@ const STEP_TITLES: Record<number, string> = {
 export const ContractForm: FC<ContractFormProps> = ({ templateKey }) => {
   const navigate = useNavigate()
   const userProfile = useUserStore((s) => s.profile)
+  const authToken = useUserStore((s) => s.authToken)
   const setUserProfile = useUserStore((s) => s.setProfile)
   const walletAddress = useUserStore((s) => s.walletAddress)
   const createContract = useContractsStore((s) => s.create)
@@ -43,6 +43,8 @@ export const ContractForm: FC<ContractFormProps> = ({ templateKey }) => {
   const template = useMemo(() => findTemplate(templateKey), [templateKey])
 
   const [step, setStep] = useState(1)
+  const [isImprovingAssignment, setIsImprovingAssignment] = useState(false)
+  const [improveAssignmentError, setImproveAssignmentError] = useState('')
 
   const form = useForm<ContractFormValues>({
     mode: 'onChange',
@@ -51,9 +53,9 @@ export const ContractForm: FC<ContractFormProps> = ({ templateKey }) => {
       customerFullName: userProfile.fullName,
       customerEmail: userProfile.email,
       customerCompanyName: userProfile.companyName ?? '',
-      performerFullName: MOCK_PERFORMER.fullName,
-      performerEmail: MOCK_PERFORMER.email,
-      performerCompanyName: MOCK_PERFORMER.companyName,
+      performerFullName: '',
+      performerEmail: '',
+      performerCompanyName: '',
       performerWalletAddress: '',
       technicalAssignment: template?.defaultTechnicalAssignment ?? '',
       subject: template?.defaultSubject ?? '',
@@ -65,6 +67,31 @@ export const ContractForm: FC<ContractFormProps> = ({ templateKey }) => {
       additionalTerms: '',
     },
   })
+  const technicalAssignment = form.watch('technicalAssignment') ?? ''
+  const technicalAssignmentLength = technicalAssignment.trim().length
+  const isTechnicalAssignmentReadyForAi =
+    technicalAssignmentLength >= MIN_TECHNICAL_ASSIGNMENT_CHARS_FOR_AI
+
+  const aiService = useMemo(
+    () =>
+      createLocalAiService({
+        source: ((import.meta.env.VITE_AI_SOURCE as 'demo' | 'qvac' | undefined) ?? 'qvac') as
+          | 'demo'
+          | 'qvac',
+        adapters: {
+          demo: demoLocalAiAdapter,
+          qvac: qvacLocalAiAdapter,
+        },
+        qvacApi: {
+          baseUrl:
+            (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:4000',
+          getAuthToken: () => authToken,
+        },
+        fallbackToDemo: false,
+      }),
+    [authToken],
+  )
+  const aiScenario: Exclude<DemoScenario, 'off'> = templateKey === 'logo-design' ? 'logo' : 'design'
 
   const stepFields: Array<Array<keyof ContractFormValues>> = [
     ['customerFullName', 'customerEmail'],
@@ -88,6 +115,39 @@ export const ContractForm: FC<ContractFormProps> = ({ templateKey }) => {
       return
     }
     setStep((prev) => Math.max(prev - 1, 1))
+  }
+
+  const handleImproveTechnicalAssignment = async () => {
+    if (!isTechnicalAssignmentReadyForAi || isImprovingAssignment) return
+    setIsImprovingAssignment(true)
+    setImproveAssignmentError('')
+
+    const payload: ContractDraft = {
+      scope: technicalAssignment,
+      deliverables: technicalAssignment,
+      timeline: technicalAssignment,
+      paymentTerms: technicalAssignment,
+    }
+
+    try {
+      const result = await aiService.improveContract('preview', payload, aiScenario)
+      const nextText = result.rewriteSuggestions[0]?.trim()
+      if (!nextText) {
+        setImproveAssignmentError('QVAC did not return an improved version. Try again.')
+        return
+      }
+      form.setValue('technicalAssignment', nextText, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true,
+      })
+    } catch (error) {
+      setImproveAssignmentError(
+        error instanceof Error ? error.message : 'Failed to improve technical assignment.',
+      )
+    } finally {
+      setIsImprovingAssignment(false)
+    }
   }
 
   const handleSubmit = form.handleSubmit((values) => {
@@ -168,6 +228,30 @@ export const ContractForm: FC<ContractFormProps> = ({ templateKey }) => {
       >
         {step === 1 && <Step1Parties form={form} />}
         {step === 2 && <Step2TechnicalAssignment form={form} />}
+        {step === 2 && isTechnicalAssignmentReadyForAi && (
+          <div className="flex flex-col gap-2">
+            <Button
+              type="button"
+              onClick={handleImproveTechnicalAssignment}
+              disabled={isImprovingAssignment}
+              className="w-full md:w-auto"
+            >
+              {isImprovingAssignment ? 'Improving with QVAC...' : 'Improve with QVAC'}
+            </Button>
+            {improveAssignmentError && (
+              <p className="text-[13px] font-medium text-(--color-state-danger)">
+                {improveAssignmentError}
+              </p>
+            )}
+          </div>
+        )}
+        {step === 2 && !isTechnicalAssignmentReadyForAi && (
+          <p className="text-[13px] font-medium text-(--color-text-muted)">
+            Write at least {MIN_TECHNICAL_ASSIGNMENT_CHARS_FOR_AI} characters in Technical
+            assignment to enable AI improvement ({technicalAssignmentLength}/
+            {MIN_TECHNICAL_ASSIGNMENT_CHARS_FOR_AI}).
+          </p>
+        )}
         {step === 3 && <Step3Subject form={form} />}
         {step === 4 && <Step4Term form={form} />}
         {step === 5 && <Step5Cost form={form} />}

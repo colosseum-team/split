@@ -70,13 +70,37 @@ const asNumber = (value: unknown, fallback = 0) => (typeof value === 'number' ? 
 const asString = (value: unknown, fallback = '') => (typeof value === 'string' ? value : fallback)
 
 const buildContractPrompt = (input: ContractDraft) => `
-You are a contract copilot. Return strict JSON only.
+You are a senior legal contract copilot for freelance services.
+Return strict JSON only. No markdown fences, no prose outside JSON.
 Fields:
 - ambiguities: string[]
 - rewriteSuggestions: string[]
 - acceptanceCriteria: string[]
 - riskScore: number (0-100)
 - riskFactors: string[]
+
+Strict drafting rules for rewriteSuggestions:
+- Use the user's current Technical assignment (Scope) as the source material to rewrite.
+- Return exactly 1 rewriteSuggestions item (a single full strict version).
+- The rewrite must be formal legal/business style with this exact structure:
+  1. Project goal
+  2. Scope of work
+  2.1. Discovery and analysis
+  2.2. UI/UX design
+  2.3. Front-end implementation
+  2.4. Content
+  2.5. Out of scope (unless agreed separately)
+  3. Deliverables
+  4. Acceptance criteria
+  5. Timeline (indicative, can be adjusted in writing)
+  6. Customer obligations
+  7. Performer obligations
+  8. Acceptance and warranty
+- Keep numbering exactly as above.
+- Use concise, testable statements and measurable thresholds.
+- Do not output placeholders like TBD or "...".
+- If data is missing, make explicit realistic assumptions and include those assumptions in ambiguities.
+- rewriteSuggestions must contain a standalone full text, not fragments.
 
 Contract draft:
 Scope: ${input.scope}
