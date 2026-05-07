@@ -52,9 +52,9 @@ export const HomePage: FC = () => {
       <Header className="justify-between items-center mb-4">
         <div className="flex items-center gap-3">
           {/* place for logo */}
-          <div className="flex flex-col">
+          <div className="flex flex-col gap-2">
             <h1 className="text-h2 text-(--color-text-primary)">All contracts</h1>
-            <RoleChip role={role} className="mt-1 self-start" />
+            <RoleChip role={role} />
           </div>
         </div>
         <button
@@ -91,16 +91,20 @@ export const HomePage: FC = () => {
       </div>
 
       {role === 'customer' && (
-        <Button
-          onClick={handleCreate}
-          size="lg"
-          role="customer"
-          className="fixed bottom-6 right-6 z-40 w-14 px-0 rounded-[var(--radius-pill)] md:w-auto md:px-6 shadow-[var(--shadow-md)]"
-          aria-label="Create contract"
-        >
-          <PlusIcon className="w-5 h-5" />
-          <span className="hidden md:inline">Create contract</span>
-        </Button>
+        <div className="fixed bottom-6 left-0 right-0 z-40 pointer-events-none">
+          <div className="w-full max-w-[820px] mx-auto px-4 md:px-6 flex justify-end">
+            <Button
+              onClick={handleCreate}
+              size="lg"
+              role="customer"
+              className="pointer-events-auto w-14 px-0 rounded-[var(--radius-pill)] md:w-auto md:px-6 shadow-[var(--shadow-md)]"
+              aria-label="Create contract"
+            >
+              <PlusIcon className="w-5 h-5" />
+              <span className="hidden md:inline">Create contract</span>
+            </Button>
+          </div>
+        </div>
       )}
     </Layout>
   )

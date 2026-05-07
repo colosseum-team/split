@@ -23,7 +23,7 @@ export function RoleChip({ role, className = '' }: RoleChipProps) {
       className={`inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] bg-(--color-surface-muted) px-2.5 py-1 text-[12px] font-bold text-(--color-text-secondary) ${className}`}
     >
       <span className={`h-2 w-2 rounded-full ${ROLE_DOT[role]}`} />
-      {ROLE_LABEL[role]}
+      You are a {ROLE_LABEL[role]}
     </span>
   )
 }

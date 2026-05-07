@@ -1,11 +1,14 @@
 interface AuroraBackdropProps {
   className?: string
+  /** When true, the backdrop is fixed to the viewport so it stays in place while scrolling. */
+  fixed?: boolean
 }
 
-export function AuroraBackdrop({ className = '' }: AuroraBackdropProps) {
+export function AuroraBackdrop({ className = '', fixed = false }: AuroraBackdropProps) {
+  const position = fixed ? 'fixed' : 'absolute'
   return (
     <div
-      className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`}
+      className={`pointer-events-none ${position} inset-0 overflow-hidden ${className}`}
       aria-hidden="true"
     >
       <div className="absolute -top-24 -left-20 h-120 w-120 rounded-full bg-(--color-decor-peach) blur-3xl" />

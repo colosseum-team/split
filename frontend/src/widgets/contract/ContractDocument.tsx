@@ -162,14 +162,14 @@ export const ContractDocument: FC<ContractDocumentProps> = ({ contract }) => {
       className="contract-paper relative w-full max-w-[820px] mx-auto rounded-[var(--radius-lg)] bg-(--color-surface-raised) border border-(--color-border-subtle) shadow-[var(--shadow-md)] overflow-hidden"
       style={{ fontFamily: 'var(--font-overpass-mono)' }}
     >
-      <header className="px-8 md:px-14 pt-10 md:pt-14 pb-6 border-b border-(--color-border-subtle) text-center flex flex-col gap-2">
+      <header className="p-4 sm:p-8 border-b border-(--color-border-subtle) text-center flex flex-col gap-2">
         <span className="text-[11px] uppercase tracking-[0.18em] font-bold text-(--color-text-muted)">
           Service agreement
         </span>
         <h1 className="text-[22px] md:text-[26px] font-bold text-(--color-text-primary) tracking-tight">
           {contract.title}
         </h1>
-        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-[12px] text-(--color-text-secondary) mt-2">
+        <div className="flex flex-wrap items-start justify-start gap-x-6 gap-y-1 text-[12px] text-(--color-text-secondary) mt-2">
           <span>
             Number: <span className="font-bold text-(--color-text-primary)">{contract.number}</span>
           </span>
@@ -186,7 +186,7 @@ export const ContractDocument: FC<ContractDocumentProps> = ({ contract }) => {
         </div>
       </header>
 
-      <div className="px-8 md:px-14 py-10">
+      <div className="p-4 sm:p-8">
         <p className="text-[13.5px] leading-[1.7] text-(--color-text-primary)">
           This Service Agreement (the{' '}
           <span className="font-bold text-(--color-brand)">"Agreement"</span>) is made and entered

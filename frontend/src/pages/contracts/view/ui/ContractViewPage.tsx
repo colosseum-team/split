@@ -1,13 +1,17 @@
 import { type FC, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ChevronLeftIcon, PencilSquareIcon, CheckBadgeIcon } from '@heroicons/react/24/outline'
+import {
+  BoltIcon,
+  ChevronLeftIcon,
+  DocumentTextIcon,
+  PencilIcon,
+} from '@heroicons/react/24/outline'
 import { useContractsStore } from '@/entities/contract'
 import { useUserStore } from '@/entities/user'
-import { Header, Layout } from '@/widgets/layout'
 import { ContractSummary } from '@/widgets/contract'
 import { SignContractModal } from '@/features/contract/sign'
 import { ConfirmCompletionModal } from '@/features/contract/complete'
-import { Button, ResultModal } from '@/shared/ui'
+import { AuroraBackdrop, Button, ResultModal } from '@/shared/ui'
 
 export const ContractViewPage: FC = () => {
   const navigate = useNavigate()
@@ -38,24 +42,28 @@ export const ContractViewPage: FC = () => {
 
   if (!contract) {
     return (
-      <Layout>
-        <Header className="items-center mb-4">
-          <button
-            type="button"
-            onClick={() => navigate('/home')}
-            className="flex items-center gap-1 text-[14px] font-bold text-(--color-text-secondary) cursor-pointer hover:opacity-80"
-          >
-            <ChevronLeftIcon className="w-5 h-5" />
-            Back
-          </button>
-        </Header>
-        <div className="flex flex-col items-center justify-center py-16 gap-2 text-center">
+      <div className="relative min-h-screen w-full bg-(--color-surface-base) overflow-x-hidden">
+        <AuroraBackdrop fixed />
+        <div className="sticky top-0 z-20 bg-(--color-surface-overlay) backdrop-blur-md border-b border-(--color-border-subtle)">
+          <div className="w-full max-w-[820px] mx-auto px-4 md:px-6 py-3 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => navigate('/home')}
+              className="flex items-center gap-1 text-[14px] font-bold text-(--color-text-secondary) cursor-pointer hover:opacity-80"
+              aria-label="Back"
+            >
+              <ChevronLeftIcon className="w-5 h-5" />
+              <span>Back</span>
+            </button>
+          </div>
+        </div>
+        <main className="relative z-10 w-full max-w-[820px] mx-auto px-4 md:px-6 py-10 flex flex-col items-center justify-center gap-2 text-center">
           <h2 className="text-h2 text-(--color-text-primary)">Contract not found</h2>
           <p className="text-body text-(--color-text-secondary)">
             It might have been removed or the link is invalid.
           </p>
-        </div>
-      </Layout>
+        </main>
+      </div>
     )
   }
 
@@ -107,43 +115,50 @@ export const ContractViewPage: FC = () => {
   }
 
   return (
-    <Layout>
-      <Header className="items-center justify-between mb-4">
-        <button
-          type="button"
-          onClick={() => navigate('/home')}
-          className="flex items-center gap-1 text-[14px] font-bold text-(--color-text-secondary) cursor-pointer hover:opacity-80"
-          aria-label="Back"
-        >
-          <ChevronLeftIcon className="w-5 h-5" />
-          <span>Back</span>
-        </button>
-      </Header>
+    <div className="relative min-h-screen w-full bg-(--color-surface-base) overflow-x-hidden">
+      <AuroraBackdrop fixed />
 
-      <ContractSummary
-        contract={contract}
-        actions={
-          <div className="flex flex-col md:flex-row gap-3 flex-1">
-            {canSign && (
-              <Button onClick={() => setIsSignOpen(true)} size="lg" className="flex-1">
-                <PencilSquareIcon className="w-5 h-5" />
-                Sign contract
-              </Button>
-            )}
-            {canConfirmCompletion && (
-              <Button
-                onClick={() => setIsConfirmOpen(true)}
-                variant="success"
-                size="lg"
-                className="flex-1"
-              >
-                <CheckBadgeIcon className="w-5 h-5" />
-                Confirm work completion
-              </Button>
-            )}
-          </div>
-        }
-      />
+      <div className="sticky top-0 z-20 bg-(--color-surface-overlay) backdrop-blur-md border-b border-(--color-border-subtle)">
+        <div className="w-full max-w-[820px] mx-auto px-4 md:px-6 py-3 flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={() => navigate('/home')}
+            className="flex items-center gap-1 text-[14px] font-bold text-(--color-text-secondary) cursor-pointer hover:opacity-80"
+            aria-label="Back"
+          >
+            <ChevronLeftIcon className="w-5 h-5" />
+            <span>Back</span>
+          </button>
+        </div>
+      </div>
+
+      <main className="relative z-10 w-full max-w-[820px] mx-auto p-4 sm:p-6">
+        <ContractSummary
+          contract={contract}
+          actions={
+            <div className="flex flex-col md:flex-row gap-3 flex-1">
+              {canSign && (
+                <Button onClick={() => setIsSignOpen(true)} size="lg" className="flex-1">
+                  <DocumentTextIcon className="w-5 h-5" />
+                  <PencilIcon className="w-5 h-5" />
+                  Sign contract
+                </Button>
+              )}
+              {canConfirmCompletion && (
+                <Button
+                  onClick={() => setIsConfirmOpen(true)}
+                  variant="success"
+                  size="lg"
+                  className="flex-1"
+                >
+                  <BoltIcon className="w-5 h-5" />
+                  Confirm work completion
+                </Button>
+              )}
+            </div>
+          }
+        />
+      </main>
 
       <SignContractModal
         isOpen={isSignOpen}
@@ -169,6 +184,6 @@ export const ContractViewPage: FC = () => {
         header={resultOpen?.header}
         text={resultOpen?.text}
       />
-    </Layout>
+    </div>
   )
 }
