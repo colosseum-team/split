@@ -39,7 +39,7 @@ services:
       HOST: 0.0.0.0
       DATABASE_URL: postgres://${POSTGRES_USER:-split}:${POSTGRES_PASSWORD:-split}@postgres:5432/${POSTGRES_DB:-split}
       JWT_SECRET: ${JWT_SECRET:-dev-only-jwt-secret-change-me-please}
-      CORS_ORIGIN: ${CORS_ORIGIN:-https://escros.work.gd,http://84.235.174.228:3001,http://localhost:5173}
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://app.escros.work.gd,https://escros.work.gd,http://localhost:5173}
       MOCK_CHAIN: ${MOCK_CHAIN:-true}
       SOLANA_RPC_URL: ${SOLANA_RPC_URL:-https://api.devnet.solana.com}
       ARBITER_AUTOEXECUTE: ${ARBITER_AUTOEXECUTE:-false}
@@ -79,8 +79,8 @@ services:
       args:
         # NEXT_PUBLIC_* are inlined into the JS bundle at build time, so they
         # must be set when the image is built, not at container start.
-        # Point the "Try the demo" CTA at the canonical HTTPS app.
-        NEXT_PUBLIC_DEMO_URL: ${NEXT_PUBLIC_DEMO_URL:-https://escros.work.gd}
+        # The "Try the demo" CTA goes to the SPA on app.escros.work.gd.
+        NEXT_PUBLIC_DEMO_URL: ${NEXT_PUBLIC_DEMO_URL:-https://app.escros.work.gd}
         NEXT_PUBLIC_GITHUB_URL: ${NEXT_PUBLIC_GITHUB_URL:-https://github.com/colosseum-team/split}
     container_name: split-landing
     restart: unless-stopped
@@ -88,8 +88,10 @@ services:
       NODE_ENV: production
       HOSTNAME: 0.0.0.0
       PORT: 3000
-    ports:
-      - '3001:3000'
+    # No host port — public traffic comes through Caddy on 443 and Caddy
+    # reverse-proxies to `landing:3000` over the compose network.
+    expose:
+      - '3000'
 
   caddy:
     image: caddy:2-alpine
