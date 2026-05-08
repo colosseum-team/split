@@ -44,8 +44,12 @@ services:
       SOLANA_RPC_URL: ${SOLANA_RPC_URL:-https://api.devnet.solana.com}
       ARBITER_AUTOEXECUTE: ${ARBITER_AUTOEXECUTE:-false}
       ARBITER_PRIVATE_KEY: ${ARBITER_PRIVATE_KEY:-}
-    ports:
-      - '4000:4000'
+    # Not published on the host. Reached only through the frontend nginx
+    # `/api/*` reverse proxy on the compose network. Avoids requiring an
+    # extra hole in the Oracle security list and keeps the API same-origin
+    # once TLS lands on the frontend host.
+    expose:
+      - '4000'
     healthcheck:
       test:
         [
