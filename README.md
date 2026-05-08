@@ -66,6 +66,7 @@ This repository is in active hackathon build phase.
 
 ## Documentation
 
+- GitHub repository: [colosseum-team/split](https://github.com/colosseum-team/split)
 - Implementation plan: [`docs/implementation-plan.md`](docs/implementation-plan.md)
 - System architecture: [`docs/architecture.md`](docs/architecture.md)
 - Demo walkthrough script: [`docs/demo-script.md`](docs/demo-script.md)

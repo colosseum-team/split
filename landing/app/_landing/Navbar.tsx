@@ -41,8 +41,8 @@ function LogoMark() {
           y2="28"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stopColor="#7c5cff" />
-          <stop offset="1" stopColor="#4d35cc" />
+          <stop stopColor="#68004d" />
+          <stop offset="1" stopColor="#8a3210" />
         </linearGradient>
       </defs>
     </svg>
