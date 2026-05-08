@@ -84,6 +84,7 @@ QVAC in Docker notes (timeouts, Vulkan, arm64 vs amd64): **`backend/docs/qvac-ba
 
 ## Documentation
 
+- GitHub repository: [colosseum-team/split](https://github.com/colosseum-team/split)
 - Implementation plan: [`docs/implementation-plan.md`](docs/implementation-plan.md)
 - QVAC product/architecture plan: [`docs/qvac-ai-arbitration-plan.md`](docs/qvac-ai-arbitration-plan.md)
 - **QVAC backend setup (Docker, API payloads, Bare): [`backend/docs/qvac-backend.md`](backend/docs/qvac-backend.md)**

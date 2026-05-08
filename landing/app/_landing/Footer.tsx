@@ -1,4 +1,4 @@
-const GITHUB_URL = process.env.NEXT_PUBLIC_GITHUB_URL ?? 'https://github.com/CHANGE-ME'
+const GITHUB_URL = process.env.NEXT_PUBLIC_GITHUB_URL ?? 'https://github.com/colosseum-team/split'
 
 export function Footer() {
   return (
