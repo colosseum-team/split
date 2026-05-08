@@ -65,6 +65,11 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+      args:
+        # Same-origin API base: the SPA fetches /api/*; nginx (in this same
+        # container) proxies it to the backend on the compose network. No
+        # CORS, no hard-coded host, and stays correct after TLS rotates.
+        VITE_API_URL: ${VITE_API_URL:-/api}
     container_name: split-frontend
     restart: unless-stopped
     # No host port — public traffic comes through Caddy on 443 (HTTPS) and

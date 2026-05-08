@@ -1,6 +1,8 @@
-# split
+# Escros
 
 Trustless freelance escrow platform on Solana: connecting clear contract summaries with automated payments.
+
+Live demo: [escros.work.gd](https://escros.work.gd) (landing) · [app.escros.work.gd](https://app.escros.work.gd) (app)
 
 ## Problem
 
@@ -8,7 +10,7 @@ Freelancers and clients often lose time and money due to vague scope, delayed pa
 
 ## Solution
 
-`split` is a role-based escrow product for freelance work with transparent rules and programmable payouts on Solana.
+Escros is a role-based escrow product for freelance work with transparent rules and programmable payouts on Solana.
 
 - `customer` (заказчик): creates contracts, funds escrow, accepts results.
 - `user` (исполнитель): accepts contracts, submits work, receives payouts.

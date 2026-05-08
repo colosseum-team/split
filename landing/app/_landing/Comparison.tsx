@@ -1,5 +1,5 @@
 const columns = [
-  { name: 'Split', ours: true },
+  { name: 'Escros', ours: true },
   { name: 'Mellow', ours: false },
   { name: 'Upwork', ours: false },
   { name: 'Fiverr', ours: false },

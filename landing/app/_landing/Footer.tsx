@@ -5,7 +5,7 @@ export function Footer() {
     <footer className="lp-footer">
       <div className="lp-footer-inner">
         <div className="lp-footer-left">
-          <strong>Split</strong>
+          <strong>Escros</strong>
           <span className="lp-footer-tagline">Trustless freelance contracts on Solana.</span>
           <span className="lp-footer-copy">© 2026 · Built for Solana Hackathon</span>
         </div>

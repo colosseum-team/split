@@ -5,6 +5,7 @@ import { useUserStore, type UserRole } from '@/entities/user'
 import { WalletConnectButton, useWalletAuth } from '@/features/wallet'
 import { RoleSelector } from '@/features/role'
 import { AuroraBackdrop, Card } from '@/shared/ui'
+import { api, ApiError } from '@/shared/api/client'
 
 const benefits = [
   'Self-custodial signing — your wallet, your contract',
@@ -14,9 +15,10 @@ const benefits = [
 
 export const StartPage: FC = () => {
   const navigate = useNavigate()
-  const { walletAddress, connected } = useWalletAuth()
+  const { walletAddress, connected, authToken } = useWalletAuth()
   const role = useUserStore((s) => s.role)
   const setRole = useUserStore((s) => s.setRole)
+  const setAuthToken = useUserStore((s) => s.setAuthToken)
 
   const step: 1 | 2 = walletAddress ? 2 : 1
 
@@ -27,7 +29,21 @@ export const StartPage: FC = () => {
   }, [walletAddress, role, navigate])
 
   const handleSelectRole = (next: UserRole) => {
+    // Optimistically update the store so the UI navigates immediately even
+    // if the user has no JWT (network error, signature rejected, etc.).
     setRole(next)
+    if (authToken) {
+      void api
+        .setRole(authToken, next)
+        .then(({ token }) => setAuthToken(token))
+        .catch((err) => {
+          // eslint-disable-next-line no-console
+          console.warn(
+            '[role] backend role sync failed:',
+            err instanceof ApiError ? `${err.code} ${err.message}` : err,
+          )
+        })
+    }
     navigate('/home', { replace: true })
   }
 
@@ -43,7 +59,7 @@ export const StartPage: FC = () => {
             {/* place for logo */}
             <div className="md:max-w-[360px] flex flex-col justify-center items-center gap-2 leading-tight">
               <h1 className="text-display md:text-display text-(--color-text-primary) text-center">
-                {step === 1 ? 'Welcome to Split' : 'Choose your role'}
+                {step === 1 ? 'Welcome to Escros' : 'Choose your role'}
               </h1>
               <p className="text-body md:text-[16px] text-(--color-text-secondary) text-center">
                 {step === 1
