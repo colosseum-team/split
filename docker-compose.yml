@@ -39,7 +39,7 @@ services:
       HOST: 0.0.0.0
       DATABASE_URL: postgres://${POSTGRES_USER:-split}:${POSTGRES_PASSWORD:-split}@postgres:5432/${POSTGRES_DB:-split}
       JWT_SECRET: ${JWT_SECRET:-dev-only-jwt-secret-change-me-please}
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://84.235.174.228:3000,http://84.235.174.228:3001,http://localhost:5173}
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://escros.work.gd,http://84.235.174.228:3001,http://localhost:5173}
       MOCK_CHAIN: ${MOCK_CHAIN:-true}
       SOLANA_RPC_URL: ${SOLANA_RPC_URL:-https://api.devnet.solana.com}
       ARBITER_AUTOEXECUTE: ${ARBITER_AUTOEXECUTE:-false}
@@ -67,8 +67,10 @@ services:
       dockerfile: frontend/Dockerfile
     container_name: split-frontend
     restart: unless-stopped
-    ports:
-      - '3000:80'
+    # No host port — public traffic comes through Caddy on 443 (HTTPS) and
+    # Caddy reverse-proxies to `frontend:80` over the compose network.
+    expose:
+      - '80'
 
   landing:
     build:
@@ -77,8 +79,8 @@ services:
       args:
         # NEXT_PUBLIC_* are inlined into the JS bundle at build time, so they
         # must be set when the image is built, not at container start.
-        # Defaults point at the staging host; override via env on other targets.
-        NEXT_PUBLIC_DEMO_URL: ${NEXT_PUBLIC_DEMO_URL:-http://84.235.174.228:3000}
+        # Point the "Try the demo" CTA at the canonical HTTPS app.
+        NEXT_PUBLIC_DEMO_URL: ${NEXT_PUBLIC_DEMO_URL:-https://escros.work.gd}
         NEXT_PUBLIC_GITHUB_URL: ${NEXT_PUBLIC_GITHUB_URL:-https://github.com/colosseum-team/split}
     container_name: split-landing
     restart: unless-stopped
@@ -89,5 +91,24 @@ services:
     ports:
       - '3001:3000'
 
+  caddy:
+    image: caddy:2-alpine
+    container_name: split-caddy
+    restart: unless-stopped
+    depends_on:
+      - frontend
+    ports:
+      # 80 is required for the HTTP-01 challenge that issues the cert and for
+      # automatic HTTP→HTTPS redirects. 443 serves HTTPS; 443/udp enables HTTP/3.
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - split-caddy-data:/data
+      - split-caddy-config:/config
+
 volumes:
   split-postgres-data:
+  split-caddy-data:
+  split-caddy-config:
