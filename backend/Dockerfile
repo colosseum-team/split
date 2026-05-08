@@ -5,6 +5,16 @@ FROM node:22-bookworm-slim AS builder
 
 WORKDIR /app
 
+# OpenSSL is needed at `prisma generate` time too: without it Prisma's engine
+# autodetection in the slim image misreads the libssl version, downloads the
+# openssl-1.1 engine, and the runtime crashes on bookworm (OpenSSL 3.0) with
+# `PrismaClientInitializationError ... required linux-arm64-openssl-3.0.x`.
+# `binaryTargets` in schema.prisma also pins this explicitly, but installing
+# the package keeps the autodetection honest.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends openssl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy lockfile + workspace metadata first for layer caching.
 COPY package.json package-lock.json ./
 COPY backend/package.json ./backend/

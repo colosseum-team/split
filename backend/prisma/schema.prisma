@@ -3,7 +3,14 @@
 // AI inference (QVAC) runs in the browser; this schema only stores AI outputs metadata.
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  // Build the ARM64 / OpenSSL 3 engine in addition to whatever the build host
+  // happens to be. The deploy host is Ubuntu 24 ARM64 (OpenSSL 3.0); without
+  // this hint Prisma's autodetection in the slim Debian builder picked
+  // openssl-1.1.x and the runtime crashed with PrismaClientInitializationError
+  // ("Prisma Client was generated for linux-arm64-openssl-1.1.x, but the
+  // actual deployment required linux-arm64-openssl-3.0.x").
+  binaryTargets = ["native", "linux-arm64-openssl-3.0.x"]
 }
 
 datasource db {
