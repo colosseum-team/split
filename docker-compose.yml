@@ -11,8 +11,11 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-split}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-split}
       POSTGRES_DB: ${POSTGRES_DB:-split}
-    ports:
-      - '5432:5432'
+    # Not published on the host — only services on the compose network can
+    # reach Postgres. For ad-hoc psql on the deploy host:
+    #   docker compose exec postgres psql -U split -d split
+    expose:
+      - '5432'
     volumes:
       - split-postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -20,6 +23,39 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: split-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: '4000'
+      HOST: 0.0.0.0
+      DATABASE_URL: postgres://${POSTGRES_USER:-split}:${POSTGRES_PASSWORD:-split}@postgres:5432/${POSTGRES_DB:-split}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-jwt-secret-change-me-please}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://84.235.174.228:3000,http://84.235.174.228:3001,http://localhost:5173}
+      MOCK_CHAIN: ${MOCK_CHAIN:-true}
+      SOLANA_RPC_URL: ${SOLANA_RPC_URL:-https://api.devnet.solana.com}
+      ARBITER_AUTOEXECUTE: ${ARBITER_AUTOEXECUTE:-false}
+      ARBITER_PRIVATE_KEY: ${ARBITER_PRIVATE_KEY:-}
+    ports:
+      - '4000:4000'
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "require(\"http\").get(\"http://127.0.0.1:4000/health\", (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on(\"error\", () => process.exit(1))"',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   frontend:
     build:
