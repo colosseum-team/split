@@ -24,4 +24,17 @@ export default defineConfig({
       transformMixedEsModules: true,
     },
   },
+  // Dev-only proxy: in production the SPA hits same-origin `/api/*` and
+  // nginx forwards it to the backend container. In `vite dev` there's no
+  // nginx, so we point /api/* directly at the backend started locally
+  // (`docker compose up -d backend` or `npm run dev --workspace backend`).
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:4000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+    },
+  },
 })

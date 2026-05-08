@@ -14,6 +14,7 @@ export const useUserStore = create<UserState>()(
       walletAddress: null,
       role: null,
       profile: { ...DEFAULT_PROFILE },
+      authToken: null,
 
       setWalletAddress: (address) => set({ walletAddress: address }),
       setRole: (role) => set({ role }),
@@ -21,21 +22,24 @@ export const useUserStore = create<UserState>()(
         set((state) => ({
           profile: { ...state.profile, ...profile },
         })),
+      setAuthToken: (token) => set({ authToken: token }),
       clearRole: () => set({ role: null }),
       clear: () =>
         set({
           walletAddress: null,
           role: null,
           profile: { ...DEFAULT_PROFILE },
+          authToken: null,
         }),
     }),
     {
       name: 'split-user-store',
-      version: 1,
+      version: 2,
       partialize: (state) => ({
         walletAddress: state.walletAddress,
         role: state.role,
         profile: state.profile,
+        authToken: state.authToken,
       }),
     },
   ),

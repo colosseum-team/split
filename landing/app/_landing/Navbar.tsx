@@ -3,9 +3,9 @@ import { CtaButton } from './CtaButton'
 export function Navbar() {
   return (
     <header className="lp-nav">
-      <a href="#top" className="lp-logo" aria-label="Split home">
+      <a href="#top" className="lp-logo" aria-label="Escros home">
         <LogoMark />
-        <span>Split</span>
+        <span>Escros</span>
       </a>
       <nav className="lp-nav-links" aria-label="Primary">
         <a href="#about">About</a>

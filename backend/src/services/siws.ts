@@ -7,7 +7,7 @@ import { prisma } from './prisma.js'
 const NONCE_TTL_MS = 5 * 60 * 1000
 
 export function nonceMessage(nonce: string): string {
-  return `Sign in to split.\nNonce: ${nonce}`
+  return `Sign in to Escros.\nNonce: ${nonce}`
 }
 
 export async function issueNonce(walletAddress: string): Promise<{

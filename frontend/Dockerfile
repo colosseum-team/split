@@ -27,6 +27,13 @@ RUN rm package-lock.json \
 
 COPY frontend ./frontend
 
+# Vite inlines `import.meta.env.VITE_*` at build time, so the API base has to
+# be baked into the bundle here. Default to `/api` (same-origin, proxied by
+# nginx to the backend container) so the SPA stays portable and works behind
+# any TLS termination without code changes.
+ARG VITE_API_URL=/api
+ENV VITE_API_URL=${VITE_API_URL}
+
 RUN npm run build --workspace frontend
 
 # --- runtime -----------------------------------------------------------------
