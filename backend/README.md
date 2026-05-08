@@ -18,10 +18,10 @@ Responsibilities:
    docker compose up -d postgres
    ```
 
-2. From `backend/`:
+2. From repo root:
 
    ```
-   cp .env.example .env
+   cp backend/.env.example backend/.env
    npm install --workspace backend
    npm run prisma:generate --workspace backend
    npm run prisma:migrate --workspace backend
@@ -33,6 +33,43 @@ Responsibilities:
    ```
    curl http://localhost:4000/health
    ```
+
+## Production deploy
+
+The backend is part of the same compose stack as `frontend` and `landing`. The
+manual `Deploy` workflow (`.github/workflows/deploy.yml`) SSHes into the host,
+pulls the requested ref, and runs `docker compose build --pull && docker compose up -d`.
+This will:
+
+- Build `backend/Dockerfile` (multi-stage Node 22 + Prisma).
+- Apply pending Prisma migrations on container start (`prisma migrate deploy`).
+- Start the API on `:4000` once Postgres reports healthy.
+
+### Required server-side env vars
+
+The compose file ships with safe defaults for everything except secrets. On
+the deploy host place a `.env` next to the compose file:
+
+```
+JWT_SECRET=<random 32+ char string>
+POSTGRES_PASSWORD=<random>            # optional, defaults to "split"
+ARBITER_PRIVATE_KEY=                  # leave empty unless ARBITER_AUTOEXECUTE=true
+```
+
+`CORS_ORIGIN` defaults to the staging IPs; override if the demo URL changes.
+
+### Post-deploy smoke
+
+```
+curl http://<host>:4000/health
+```
+
+### Frontend wiring (TODO)
+
+The frontend on `main` does not yet call any of these endpoints — the
+`VITE_API_URL` (or equivalent) is not wired. When the frontend starts hitting
+the API, point it at `http://<host>:4000` (or `/api/*` via a future nginx
+reverse-proxy rule on the frontend container).
 
 ## Endpoints
 

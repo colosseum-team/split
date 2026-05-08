@@ -8,9 +8,13 @@ name: Deploy
 #   SSH_USER          — ssh login (e.g. "ubuntu")
 #   SSH_PRIVATE_KEY   — full contents of the OpenSSH private key (begins with
 #                       "-----BEGIN OPENSSH PRIVATE KEY-----")
+#   JWT_SECRET        — random string (>=32 chars). Used by backend to sign JWTs.
+#   POSTGRES_PASSWORD — random string. Used by Postgres + DATABASE_URL.
 #
 # The host must already have Docker and Compose v2 installed; the workflow
 # clones the repo on first run and reuses ~/split on subsequent runs.
+# JWT_SECRET and POSTGRES_PASSWORD are written to ~/split/.env every deploy
+# so docker-compose picks them up via ${VAR:-default} interpolation.
 
 on:
   workflow_dispatch:
@@ -67,10 +71,20 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
           REPO_URL: https://github.com/${{ github.repository }}.git
           DEPLOY_SHA: ${{ steps.sha.outputs.sha }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
         run: |
           set -euo pipefail
+          # Pass DEPLOY_SHA + secrets as command-line variable assignments rather
+          # than ssh's SendEnv (most sshd configs reject arbitrary env names).
+          # The single-quoted heredoc keeps `$VAR` literal so they expand on the
+          # remote side using the values we just supplied.
           ssh -i ~/.ssh/id_deploy -o BatchMode=yes "$SSH_USER@$SSH_HOST" \
-            REPO_URL="$REPO_URL" DEPLOY_SHA="$DEPLOY_SHA" bash -se <<'REMOTE'
+            REPO_URL="$REPO_URL" \
+            DEPLOY_SHA="$DEPLOY_SHA" \
+            JWT_SECRET="$JWT_SECRET" \
+            POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
+            bash -se <<'REMOTE'
           set -euo pipefail
 
           if [ ! -d ~/split/.git ]; then
@@ -80,6 +94,15 @@ jobs:
           cd ~/split
           git fetch --prune origin
           git checkout --detach "$DEPLOY_SHA"
+
+          # Materialise secrets into ~/split/.env. docker-compose reads .env
+          # automatically and interpolates ${JWT_SECRET}/${POSTGRES_PASSWORD}
+          # into the backend service environment. printf avoids the
+          # nested-heredoc indent problem; chmod 600 keeps it readable only
+          # by the deploy user.
+          printf 'JWT_SECRET=%s\nPOSTGRES_PASSWORD=%s\n' \
+            "${JWT_SECRET}" "${POSTGRES_PASSWORD}" > .env
+          chmod 600 .env
 
           # Build any new images and roll containers; --remove-orphans clears
           # services that have been removed from compose since the last deploy.
