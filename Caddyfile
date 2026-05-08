@@ -1,19 +1,25 @@
 # Caddy config for the split production stack.
 #
-# Caddy terminates TLS, auto-acquires a Let's Encrypt cert for escros.work.gd
-# (HTTP-01 challenge on :80), and proxies everything to the frontend nginx
-# inside the compose network. The frontend nginx already knows how to split
-# `/api/*` to the backend container, so Caddy only needs one upstream.
+# Caddy terminates TLS, auto-acquires Let's Encrypt certs (HTTP-01 challenge
+# on :80), redirects HTTP→HTTPS automatically, and proxies into the compose
+# network. Two virtual hosts:
 #
-# Requires:
-#   - Oracle Security List opens TCP/UDP 80 and TCP/UDP 443 to 0.0.0.0/0.
-#   - DNS A record `escros.work.gd → 84.235.174.228` (already done).
+#   escros.work.gd     → landing (Next.js, marketing site, "Try the demo" CTA)
+#   app.escros.work.gd → frontend nginx (SPA + /api/* → backend)
+#
+# Requires DNS A records for both names → 84.235.174.228 (port 80 must be
+# open to ACME validators, otherwise cert issuance fails).
 
 {
 	email l2aggron@gmail.com
 }
 
 escros.work.gd {
+	encode gzip zstd
+	reverse_proxy landing:3000
+}
+
+app.escros.work.gd {
 	encode gzip zstd
 	reverse_proxy frontend:80
 }
