@@ -1,0 +1,39 @@
+name: Backend logs
+
+on:
+  workflow_dispatch:
+
+jobs:
+  logs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure SSH
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Show backend container state + last 100 log lines
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes "$SSH_USER@$SSH_HOST" bash -se <<'REMOTE'
+          set -euo pipefail
+          cd ~/split
+          echo "=== docker compose ps ==="
+          docker compose ps
+          echo ""
+          echo "=== container inspect (state, restart count) ==="
+          docker inspect split-backend --format '{{json .State}}' | python3 -m json.tool 2>/dev/null || docker inspect split-backend --format '{{json .State}}'
+          echo ""
+          echo "=== last 150 log lines ==="
+          docker compose logs --tail=150 backend
+          REMOTE
