@@ -32,17 +32,22 @@ export const ConfirmCompletionModal: FC<ConfirmCompletionModalProps> = ({
           <CheckBadgeIcon className="w-7 h-7 text-(--color-state-success)" />
         </div>
         <div className="flex flex-col gap-1 text-center">
-          <h2 className="text-h2 text-(--color-text-primary)">Confirm work completion?</h2>
+          <h2 className="text-h2 text-(--color-text-primary)">Confirm work is accepted?</h2>
           <p className="text-body text-(--color-text-secondary)">
-            By confirming, you mark the contract as completed and approve the release of {amount}{' '}
-            {symbol} to <strong>{performerName}</strong>. The on-chain payout step is intentionally
-            out of scope for this MVP.
+            You confirm that the deliverables match this contract. We then mark it{' '}
+            <strong>completed</strong> and (in a full product) would release {amount} {symbol} to{' '}
+            <strong>{performerName}</strong>. On-chain payout is out of scope for this MVP.
+          </p>
+          <p className="text-[13px] leading-relaxed text-(--color-text-muted)">
+            Not satisfied yet? Tap <strong>Cancel</strong>, discuss changes with the performer, then
+            confirm when ready. After completion you can still open the dispute summary section on
+            this page (demo).
           </p>
         </div>
 
         <div className="flex flex-col gap-2 w-full">
           <Button onClick={onConfirm} disabled={isSubmitting} className="w-full">
-            {isSubmitting ? 'Confirming…' : 'Confirm completion'}
+            {isSubmitting ? 'Confirming…' : 'Yes, work is complete'}
           </Button>
           <Button onClick={onClose} variant="ghost" className="w-full">
             Cancel
