@@ -1,5 +1,19 @@
-import 'dotenv/config'
+import dotenv from 'dotenv'
+import path from 'path'
+import { fileURLToPath } from 'node:url'
 import { z } from 'zod'
+
+/** Always merge `backend/.env` regardless of Node `cwd` (Docker uses `/workspace`). */
+const backendEnvPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../.env')
+dotenv.config({ path: backendEnvPath })
+
+/** Patched `@qvac/sdk` reads this once at first import; keep a high floor for Docker/GGUF cold start. */
+{
+  const n = Number(process.env.QVAC_RPC_INIT_TIMEOUT_MS)
+  if (!Number.isFinite(n) || n < 600_000) {
+    process.env.QVAC_RPC_INIT_TIMEOUT_MS = '900000'
+  }
+}
 
 const Env = z.object({
   PORT: z.coerce.number().int().positive().default(4000),
@@ -23,6 +37,13 @@ const Env = z.object({
     .default('false')
     .transform((v) => v === 'true'),
   ARBITER_PRIVATE_KEY: z.string().optional(),
+
+  QVAC_ENABLED: z
+    .string()
+    .default('false')
+    .transform((v) => v === 'true'),
+  QVAC_MODEL_ID: z.string().default('qvac-llamacpp'),
+  QVAC_MODEL_VERSION: z.string().default('unknown'),
 })
 
 export const config = Env.parse(process.env)

@@ -6,6 +6,9 @@ FROM node:22-bookworm-slim AS builder
 
 WORKDIR /app
 
+ARG NPM_TOKEN
+ARG QVAC_NPM_REGISTRY=https://registry.npmjs.org
+
 # Install only what the frontend workspace needs from the root lockfile.
 COPY package.json package-lock.json ./
 COPY frontend/package.json ./frontend/
@@ -23,7 +26,11 @@ COPY frontend/package.json ./frontend/
 # performs a fresh resolution for the current platform. The repo lockfile
 # is untouched; only this ephemeral copy is removed.
 RUN rm package-lock.json \
-    && npm install --workspace frontend --include-workspace-root --include=optional
+    && if [ -n "$NPM_TOKEN" ]; then \
+         printf "@qvac:registry=%s\n//registry.npmjs.org/:_authToken=%s\n" "$QVAC_NPM_REGISTRY" "$NPM_TOKEN" > .npmrc; \
+       fi \
+    && npm install --workspace frontend --include-workspace-root --include=optional \
+    && rm -f .npmrc
 
 COPY frontend ./frontend
 

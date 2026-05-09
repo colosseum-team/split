@@ -7,7 +7,8 @@ Responsibilities:
 - Wallet sign-in (SIWS) → JWT.
 - Role profile (`customer` / `user`).
 - Contracts CRUD and lifecycle: create, fund, accept, submit, approve, dispute, resolve.
-- Storage of QVAC AI outputs (contract copilot + dispute brief). The backend never invokes a model — inference is local in the browser.
+- Storage of QVAC AI outputs (contract copilot + dispute brief).
+- Optional backend-side QVAC inference (`/copilot-run`, `/dispute-run`) with persistence to `AiOutput`.
 - Optional arbiter wallet that resolves disputes on-chain when `ARBITER_AUTOEXECUTE=true`.
 
 ## Local run
@@ -34,6 +35,11 @@ Responsibilities:
    curl http://localhost:4000/health
    ```
 
+4. API docs (Swagger):
+
+   - Open UI: `http://localhost:4000/docs`
+   - Raw OpenAPI JSON: `http://localhost:4000/docs/openapi.json`
+
 ## Production deploy
 
 The backend is part of the same compose stack as `frontend` and `landing`. The
@@ -41,9 +47,11 @@ manual `Deploy` workflow (`.github/workflows/deploy.yml`) SSHes into the host,
 pulls the requested ref, and runs `docker compose build --pull && docker compose up -d`.
 This will:
 
-- Build `backend/Dockerfile` (multi-stage Node 22 + Prisma).
+- Build `backend/Dockerfile` (multi-stage Node 22 + Prisma + QVAC native deps).
 - Apply pending Prisma migrations on container start (`prisma migrate deploy`).
-- Start the API on `:4000` once Postgres reports healthy.
+- Start the API on `:4000` once Postgres reports healthy. First boot warms the
+  QVAC worker; expect up to several minutes before `/health` returns
+  `qvac: 'ready'` (override via `QVAC_RPC_INIT_TIMEOUT_MS`).
 
 ### Required server-side env vars
 
@@ -54,22 +62,17 @@ the deploy host place a `.env` next to the compose file:
 JWT_SECRET=<random 32+ char string>
 POSTGRES_PASSWORD=<random>            # optional, defaults to "split"
 ARBITER_PRIVATE_KEY=                  # leave empty unless ARBITER_AUTOEXECUTE=true
+QVAC_ENABLED=true                     # set false to skip Bare worker boot
+NPM_TOKEN=                            # only if pulling private @qvac packages
 ```
 
-`CORS_ORIGIN` defaults to the staging IPs; override if the demo URL changes.
+`CORS_ORIGIN` defaults to the staging origins; override if the demo URL changes.
 
 ### Post-deploy smoke
 
 ```
-curl http://<host>:4000/health
+curl https://escros.work.gd/api/health
 ```
-
-### Frontend wiring (TODO)
-
-The frontend on `main` does not yet call any of these endpoints — the
-`VITE_API_URL` (or equivalent) is not wired. When the frontend starts hitting
-the API, point it at `http://<host>:4000` (or `/api/*` via a future nginx
-reverse-proxy rule on the frontend container).
 
 ## Endpoints
 
@@ -90,8 +93,16 @@ reverse-proxy rule on the frontend container).
 - `POST /contracts/:id/resolve-dispute` — record agreed outcome (calls on-chain ResolveDispute when `ARBITER_AUTOEXECUTE=true`).
 - `POST /contracts/:id/copilot-output` — store QVAC contract copilot result.
 - `POST /contracts/:id/dispute-output` — store QVAC dispute brief.
+- `POST /contracts/:id/copilot-run` — run QVAC contract copilot on backend and store output.
+- `POST /contracts/:id/dispute-run` — run QVAC dispute brief on backend and store output.
+- `POST /ai/copilot-preview` — run QVAC contract copilot without persisting output.
 - `GET /contracts/:id/ai-outputs?kind=...` — list AI outputs for a contract.
 
-## Why no LLM on the backend
+## QVAC modes
 
-`docs/qvac-ai-arbitration-plan.md` is offline-first: all inference runs in the browser via `@qvac/llm-llamacpp`. The backend persists only `result_json`, `model_id`, `model_version`, `input_hash`, `output_hash` so the demo can prove the AI ran locally.
+The backend supports two integration styles:
+
+- **Backend inference (recommended):** frontend calls `/ai/copilot-preview` or `/contracts/:id/*-run`; the server runs **`@qvac/sdk` in-process** (Bare subprocess for native modules). Persisted outputs use `*-run` routes.
+- **Legacy:** frontend ran QVAC elsewhere and POSTs finished JSON via `*-output` routes.
+
+Copilot **`input`** can be **`{ "technicalAssignment": "…" }`** (single textarea) **or** the four-field section object. See **`backend/docs/qvac-backend.md`** for Docker prerequisites (Vulkan, libatomic), env vars (`QVAC_RPC_INIT_TIMEOUT_MS`), and examples.

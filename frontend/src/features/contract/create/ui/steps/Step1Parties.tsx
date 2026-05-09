@@ -61,40 +61,48 @@ export const Step1Parties: FC<Step1PartiesProps> = ({ form }) => {
         <div>
           <h3 className="text-h3 text-(--color-text-primary)">Performer</h3>
           <p className="text-[13px] font-medium text-(--color-text-muted) mt-1">
-            For the demo, the performer wallet will be attached when the performer connects their
-            wallet.
+            Enter performer contact details. Wallet will be attached when the performer connects.
           </p>
         </div>
 
         <Controller
           name="performerFullName"
           control={control}
-          render={({ field }) => <Input {...field} label="Full name" readOnly />}
+          rules={{ required: true, minLength: 2 }}
+          render={({ field, fieldState }) => (
+            <Input
+              {...field}
+              label="Full name"
+              placeholder="Maya Reyes"
+              required
+              error={fieldState.error ? 'Enter performer full name' : undefined}
+            />
+          )}
         />
 
         <Controller
           name="performerEmail"
           control={control}
-          render={({ field }) => <Input {...field} type="email" label="Email" readOnly />}
+          rules={{
+            required: true,
+            pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+          }}
+          render={({ field, fieldState }) => (
+            <Input
+              {...field}
+              type="email"
+              label="Email"
+              placeholder="performer@example.com"
+              required
+              error={fieldState.error ? 'Enter a valid performer email' : undefined}
+            />
+          )}
         />
 
         <Controller
           name="performerCompanyName"
           control={control}
-          render={({ field }) => <Input {...field} label="Company name" readOnly />}
-        />
-
-        <Controller
-          name="performerWalletAddress"
-          control={control}
-          render={({ field }) => (
-            <Input
-              {...field}
-              label="Performer wallet"
-              placeholder="Will be set by performer"
-              readOnly
-            />
-          )}
+          render={({ field }) => <Input {...field} label="Company name" placeholder="Optional" />}
         />
       </section>
     </div>

@@ -50,7 +50,7 @@ export const ContractCreatePage: FC = () => {
       </div>
 
       <main className="relative z-10 w-full max-w-[820px] mx-auto px-4 md:px-6 py-6 md:py-10">
-        <ContractForm templateKey={templateKey as ContractTemplateKey} />
+        <ContractForm key={templateKey} templateKey={templateKey as ContractTemplateKey} />
       </main>
     </div>
   )
