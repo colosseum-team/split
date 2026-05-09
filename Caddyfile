@@ -21,5 +21,12 @@ escros.work.gd {
 
 app.escros.work.gd {
 	encode gzip zstd
-	reverse_proxy frontend:80
+	# QVAC inference can take >30s on the first call; nginx behind us already
+	# allows 300s so let Caddy match instead of capping early at the edge.
+	reverse_proxy frontend:80 {
+		transport http {
+			read_timeout 300s
+			write_timeout 300s
+		}
+	}
 }
