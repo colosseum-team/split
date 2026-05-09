@@ -213,14 +213,11 @@ async function benchModel(sdk, modelName) {
         console.log('  unload failed:', e.message)
       }
     }
-    // Free disk so the next model has room to download. deleteCache by model
-    // descriptor removes the GGUF from /root/.qvac/models/.
-    try {
-      await sdk.deleteCache({ assetSrc: descriptor })
-      console.log('  cache deleted')
-    } catch (e) {
-      console.log('  deleteCache failed (non-fatal):', e.message)
-    }
+    // Note: we deliberately keep the downloaded GGUF in cacheDir between
+    // models — total payload ≈ 4GB across all 6 candidates, well under the
+    // host's free disk. deleteCache() in this SDK is for KV caches, not
+    // model artefacts; cleaning up GGUF files would mean fs.rm on the
+    // bench cache dir, which we'll do at end of run.
   }
 
   return result
@@ -229,6 +226,32 @@ async function benchModel(sdk, modelName) {
 async function main() {
   console.log('node:', process.version, '| arch:', process.arch, process.platform)
   console.log('QVAC_RPC_INIT_TIMEOUT_MS:', process.env.QVAC_RPC_INIT_TIMEOUT_MS ?? '(unset)')
+
+  // The live Fastify worker holds an fd-lock on /root/.qvac/.registry-cache.
+  // To avoid "File descriptor could not be locked" when downloading models
+  // the live worker hasn't seen, point this benchmark at a separate cache
+  // directory via a one-off QVAC config file.
+  const fs = await import('node:fs')
+  const path = await import('node:path')
+  const benchCacheDir = process.env.QVAC_BENCH_CACHE_DIR ?? '/tmp/qvac-bench'
+  fs.mkdirSync(benchCacheDir, { recursive: true })
+  const benchConfigPath = path.join(benchCacheDir, 'qvac.config.js')
+  fs.writeFileSync(
+    benchConfigPath,
+    `export default ${JSON.stringify(
+      {
+        cacheDirectory: benchCacheDir,
+        loggerLevel: 'info',
+        loggerConsoleOutput: true,
+        httpDownloadConcurrency: 3,
+        httpConnectionTimeoutMs: 30000,
+      },
+      null,
+      2,
+    )}\n`,
+  )
+  process.env.QVAC_CONFIG_PATH = benchConfigPath
+  console.log('cacheDirectory:', benchCacheDir, '(isolated from live worker)')
 
   const modelsArg =
     process.env.MODELS ??
@@ -248,6 +271,13 @@ async function main() {
     const r = await benchModel(sdk, name)
     if (r) results.push(r)
   }
+
+  // Best-effort cleanup of the bench cache dir so subsequent runs don't
+  // pile up GGUF files. Keeping the config file around is harmless.
+  try {
+    fs.rmSync(benchCacheDir + '/models', { recursive: true, force: true })
+    console.log('cleaned up', benchCacheDir + '/models')
+  } catch {}
 
   console.log('')
   console.log('=========================================')
