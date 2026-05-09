@@ -123,6 +123,19 @@ export const contractsRoutes: FastifyPluginAsync = async (app) => {
     if (input.assigneeAddress) assertWallet(input.assigneeAddress)
     const deadline = input.deadline ? new Date(input.deadline) : null
 
+    // Auto-create the assignee User row if it doesn't exist yet — the
+    // performer may not have signed in to the SPA before the customer
+    // names them on a contract. Without this the FK on Contract.assignee
+    // throws Prisma P2003. The user keeps role=null until they SIWS-auth
+    // and pick a role themselves.
+    if (input.assigneeAddress && input.assigneeAddress !== claims.sub) {
+      await prisma.user.upsert({
+        where: { walletAddress: input.assigneeAddress },
+        update: {},
+        create: { walletAddress: input.assigneeAddress },
+      })
+    }
+
     const created = await prisma.contract.create({
       data: {
         title: input.title,
