@@ -210,16 +210,41 @@ export function startQvacBackendWarmup(log: Pick<FastifyBaseLogger, 'info' | 'wa
     return
   }
 
-  qvacBackendStatus = { state: 'warming', detail: 'Bare IPC + GGUF download/load if needed' }
+  qvacBackendStatus = { state: 'warming', detail: 'connecting to Bare worker' }
   log.info(
     'QVAC warm-up started — first Bare worker IPC can take several minutes in Docker (especially on emulated amd64)',
   )
 
   void (async () => {
     try {
+      await ensureSdk()
+
+      qvacBackendStatus = { state: 'warming', detail: 'loading GGUF model' }
       await getModelId()
+
+      // Burn one full-sized inference so the first user-visible /completion
+      // call doesn't pay the inference-path warmup cost. Without this, on
+      // this hardware (4-core ARM, no GPU) the first stream-mode completion
+      // in a long-lived Fastify process can hang for hundreds of seconds
+      // (or run ~6x slower than the same call in a fresh node process).
+      //
+      // Bench numbers (scripts/bench-qvac.mjs in a fresh node process):
+      //   loadModel (cached):    ~3.8s
+      //   copilot inference #1: ~10.9s
+      // Diag (first HTTP /ai/copilot-preview after restart, no probe):
+      //   ~63.8s
+      // Goal: pay that ~60s once at startup so user requests match the
+      // bench numbers (~10s).
+      qvacBackendStatus = { state: 'warming', detail: 'priming inference path' }
+      await runContractCopilotQvac({
+        scope: 'Warm-up probe. Reply with a minimal JSON.',
+        deliverables: 'Warm-up probe. Reply with a minimal JSON.',
+        timeline: 'Warm-up probe.',
+        paymentTerms: 'Warm-up probe.',
+      })
+
       qvacBackendStatus = { state: 'ready' }
-      log.info('QVAC warm-up finished; inference should respond without blocking on IPC')
+      log.info('QVAC warm-up finished; inference path primed')
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err)
       qvacBackendStatus = { state: 'error', detail }
