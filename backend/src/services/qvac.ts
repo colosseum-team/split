@@ -222,26 +222,32 @@ export function startQvacBackendWarmup(log: Pick<FastifyBaseLogger, 'info' | 'wa
       qvacBackendStatus = { state: 'warming', detail: 'loading GGUF model' }
       await getModelId()
 
-      // Burn one full-sized inference so the first user-visible /completion
-      // call doesn't pay the inference-path warmup cost. Without this, on
-      // this hardware (4-core ARM, no GPU) the first stream-mode completion
-      // in a long-lived Fastify process can hang for hundreds of seconds
-      // (or run ~6x slower than the same call in a fresh node process).
+      // Burn one tiny inference so the first user-visible /completion call
+      // doesn't pay the inference-path warmup cost. Without this, on this
+      // hardware (4-core ARM, no GPU) the first stream-mode completion in
+      // a long-lived Fastify process can hang past nginx's edge timeout
+      // entirely, or run ~6x slower than the same call in a fresh node
+      // process (63s vs 10s on /ai/copilot-preview).
       //
       // Bench numbers (scripts/bench-qvac.mjs in a fresh node process):
       //   loadModel (cached):    ~3.8s
+      //   tiny inference #1:     ~1.4s   ← what we replicate here
       //   copilot inference #1: ~10.9s
-      // Diag (first HTTP /ai/copilot-preview after restart, no probe):
-      //   ~63.8s
-      // Goal: pay that ~60s once at startup so user requests match the
-      // bench numbers (~10s).
+      //
+      // We call sdk.completion directly with a short prompt rather than
+      // routing through runContractCopilotQvac — the production prompt is
+      // long enough that a deliberately empty-content probe blows past
+      // ctx_size=4096 once the model starts emitting tokens.
       qvacBackendStatus = { state: 'warming', detail: 'priming inference path' }
-      await runContractCopilotQvac({
-        scope: 'Warm-up probe. Reply with a minimal JSON.',
-        deliverables: 'Warm-up probe. Reply with a minimal JSON.',
-        timeline: 'Warm-up probe.',
-        paymentTerms: 'Warm-up probe.',
+      const { completion } = await ensureSdk()
+      const probeModelId = await getModelId()
+      const probe = completion({
+        modelId: probeModelId,
+        stream: true,
+        history: [{ role: 'user', content: 'Reply with strict JSON: {"ok":true}.' }],
+        responseFormat: { type: 'json_object' },
       })
+      await probe.text
 
       qvacBackendStatus = { state: 'ready' }
       log.info('QVAC warm-up finished; inference path primed')
