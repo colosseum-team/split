@@ -9,6 +9,11 @@ name: Bench QVAC
 
 on:
   workflow_dispatch:
+    inputs:
+      models:
+        description: 'Comma-separated @qvac/sdk model constants (default benches 6 candidates)'
+        required: false
+        default: 'LLAMA_3_2_1B_INST_Q4_0,QWEN3_600M_INST_Q4,BITNET_0_7B_INST_TQ2_0,BITNET_1B_INST_TQ2_0,LLAMA_TOOL_CALLING_1B_INST_Q4_K,QWEN3_1_7B_INST_Q4'
 
 concurrency:
   group: bench-qvac
@@ -18,7 +23,7 @@ jobs:
   bench:
     name: Bench QVAC inference on prod host
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 90
 
     steps:
       - name: Checkout (just to ship the bench script)
@@ -50,9 +55,12 @@ jobs:
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
+          MODELS: ${{ github.event.inputs.models }}
         run: |
           set -euo pipefail
-          ssh -i ~/.ssh/id_deploy -o BatchMode=yes "$SSH_USER@$SSH_HOST" bash -se <<'REMOTE'
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o SendEnv=MODELS "$SSH_USER@$SSH_HOST" \
+            MODELS="$MODELS" \
+            bash -se <<'REMOTE'
           set -euo pipefail
           # The script must live inside /app so Node ESM resolves @qvac/sdk
           # from /app/node_modules (NODE_PATH is ignored in ESM mode).
@@ -63,5 +71,5 @@ jobs:
           echo '--- container resources ---'
           docker exec split-backend sh -c 'echo "nproc:" $(nproc); grep -m1 "model name" /proc/cpuinfo 2>/dev/null || true; cat /proc/meminfo | head -3'
           echo '--- bench output ---'
-          docker exec -w /app split-backend node scripts/bench-qvac.mjs
+          docker exec -e MODELS="$MODELS" -w /app split-backend node scripts/bench-qvac.mjs
           REMOTE
