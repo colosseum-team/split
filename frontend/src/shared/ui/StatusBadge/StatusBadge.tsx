@@ -12,6 +12,8 @@ const STATUS_TEXT: Record<ContractStatus, string> = {
   PENDING_SIGNING: 'Pending signing',
   PARTIALLY_SIGNED: 'Partially signed',
   SIGNED: 'Signed',
+  REVIEW: 'In review',
+  DISPUTED: 'Disputed',
   COMPLETED: 'Completed',
   DECLINED: 'Declined',
 }
@@ -21,6 +23,8 @@ const STATUS_TONE: Record<ContractStatus, BadgeTone> = {
   PENDING_SIGNING: 'info',
   PARTIALLY_SIGNED: 'brand',
   SIGNED: 'success',
+  REVIEW: 'warning',
+  DISPUTED: 'danger',
   COMPLETED: 'success',
   DECLINED: 'neutral',
 }

@@ -24,4 +24,7 @@ export interface ContractFormValues {
   jurisdictionCode: string
 
   additionalTerms: string
+
+  /** Calendar days (1–30) for dispute exchange window. */
+  disputeResolutionDays: number
 }

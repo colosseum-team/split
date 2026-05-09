@@ -96,19 +96,52 @@ model Contract {
   submissionAt         DateTime?
 
   // Dispute fields. AI brief itself lives in AiOutput rows for traceability.
-  disputeOpenedBy      Role?
-  disputeOpenedAt      DateTime?
-  disputeOutcome       DisputeOutcome?
-  disputeResolvedAt    DateTime?
+  disputeResolutionDays Int            @default(7)
+  disputeDueAt          DateTime?
+  disputeOpenedBy       Role?
+  disputeOpenedAt       DateTime?
+  disputeOutcome        DisputeOutcome?
+  disputeResolvedAt     DateTime?
 
-  aiOutputs            AiOutput[]
+  aiOutputs             AiOutput[]
+  disputeMessages       DisputeMessage[]
+  disputeAttachments    DisputeAttachment[]
 
-  createdAt            DateTime       @default(now())
-  updatedAt            DateTime       @updatedAt
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
 
   @@index([customerAddress])
   @@index([assigneeAddress])
   @@index([status])
+}
+
+model DisputeMessage {
+  id           String              @id @default(uuid())
+  contractId   String
+  contract     Contract            @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  authorWallet String
+  body         String
+  createdAt    DateTime            @default(now())
+  attachments  DisputeAttachment[]
+
+  @@index([contractId, createdAt])
+}
+
+model DisputeAttachment {
+  id         String          @id @default(uuid())
+  contractId String
+  contract   Contract        @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  messageId  String?
+  message    DisputeMessage? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  uploadedBy String
+  storageKey String
+  fileName   String
+  mimeType   String
+  size       Int
+  createdAt  DateTime        @default(now())
+
+  @@index([contractId])
+  @@index([messageId])
 }
 
 // QVAC AI outputs: contract copilot suggestions and dispute briefs.

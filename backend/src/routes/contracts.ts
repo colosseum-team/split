@@ -6,6 +6,7 @@ import { chain } from '../services/chain.js'
 import { assertWallet } from '../services/wallet.js'
 import { normalizeContract, sha256Hex } from '../services/hash.js'
 import { executeOnChainResolve } from '../services/arbiter.js'
+import { readDisputeFileStream, saveDisputeUpload } from '../services/dispute-files.js'
 
 const CONTRACT_STATUSES = [
   'draft',
@@ -27,6 +28,7 @@ const CreateContractInput = z.object({
   currency: z.string().min(2).max(10).default('USDC'),
   deadline: z.string().datetime().optional(),
   assigneeAddress: z.string().min(32).max(64).optional(),
+  disputeResolutionDays: z.number().int().min(1).max(30).optional(),
 })
 
 const PatchContractInput = z.object({
@@ -39,6 +41,7 @@ const PatchContractInput = z.object({
   currency: z.string().min(2).max(10).optional(),
   deadline: z.string().datetime().optional(),
   assigneeAddress: z.string().min(32).max(64).optional(),
+  disputeResolutionDays: z.number().int().min(1).max(30).optional(),
 })
 
 const ListQuery = z.object({
@@ -55,6 +58,34 @@ const ResolveDisputeRequest = z.object({
   outcome: z.enum(['PERFORMER_WON', 'CLIENT_WON', 'INCONCLUSIVE']),
 })
 
+const DisputeMessageCreate = z.object({
+  body: z.string().min(1).max(10_000),
+  attachmentIds: z.array(z.string().uuid()).max(10).optional(),
+})
+
+const DisputeAttachmentUpload = z.object({
+  fileName: z.string().min(1).max(255),
+  mimeType: z.string().min(1).max(128),
+  dataBase64: z.string().min(1),
+})
+
+const ALLOWED_DISPUTE_MIMES = new Set([
+  'application/pdf',
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/gif',
+  'text/plain',
+])
+
+const MAX_DISPUTE_FILE_BYTES = 5 * 1024 * 1024
+
+function addDisputeCalendarDays(start: Date, days: number): Date {
+  const d = new Date(start.getTime())
+  d.setUTCDate(d.getUTCDate() + days)
+  return d
+}
+
 function serialize<
   T extends {
     amount: bigint
@@ -64,6 +95,8 @@ function serialize<
     submissionAt: Date | null
     disputeOpenedAt: Date | null
     disputeResolvedAt: Date | null
+    disputeDueAt: Date | null
+    disputeResolutionDays: number
   },
 >(c: T) {
   return {
@@ -75,6 +108,7 @@ function serialize<
     submissionAt: c.submissionAt ? c.submissionAt.toISOString() : null,
     disputeOpenedAt: c.disputeOpenedAt ? c.disputeOpenedAt.toISOString() : null,
     disputeResolvedAt: c.disputeResolvedAt ? c.disputeResolvedAt.toISOString() : null,
+    disputeDueAt: c.disputeDueAt ? c.disputeDueAt.toISOString() : null,
   }
 }
 
@@ -99,6 +133,7 @@ export const contractsRoutes: FastifyPluginAsync = async (app) => {
         customerAddress: claims.sub,
         assigneeAddress: input.assigneeAddress ?? null,
         status: input.assigneeAddress ? 'draft' : 'open',
+        disputeResolutionDays: input.disputeResolutionDays ?? 7,
       },
     })
 
@@ -193,11 +228,13 @@ export const contractsRoutes: FastifyPluginAsync = async (app) => {
     const patch = PatchContractInput.parse(req.body)
     if (patch.assigneeAddress) assertWallet(patch.assigneeAddress)
 
+    const { deadline, disputeResolutionDays, ...restPatch } = patch
     const updated = await prisma.contract.update({
       where: { id: c.id },
       data: {
-        ...patch,
-        deadline: patch.deadline ? new Date(patch.deadline) : undefined,
+        ...restPatch,
+        deadline: deadline !== undefined ? new Date(deadline) : undefined,
+        disputeResolutionDays,
       },
     })
 
@@ -391,12 +428,16 @@ export const contractsRoutes: FastifyPluginAsync = async (app) => {
       })
     }
     const openedBy = isCustomer ? 'customer' : 'user'
+    const openedAt = c.disputeOpenedAt ?? new Date()
+    const dueAt =
+      c.disputeDueAt ?? addDisputeCalendarDays(openedAt, c.disputeResolutionDays)
     const updated = await prisma.contract.update({
       where: { id: c.id },
       data: {
         status: 'disputed',
         disputeOpenedBy: openedBy,
-        disputeOpenedAt: c.disputeOpenedAt ?? new Date(),
+        disputeOpenedAt: openedAt,
+        disputeDueAt: dueAt,
       },
     })
     return serialize(updated)
@@ -436,4 +477,208 @@ export const contractsRoutes: FastifyPluginAsync = async (app) => {
     })
     return { ...serialize(updated), onchain }
   })
+
+  const serializeDisputeAttachment = (a: {
+    id: string
+    fileName: string
+    mimeType: string
+    size: number
+    createdAt: Date
+  }) => ({
+    id: a.id,
+    fileName: a.fileName,
+    mimeType: a.mimeType,
+    size: a.size,
+    createdAt: a.createdAt.toISOString(),
+  })
+
+  const serializeDisputeMessage = (m: {
+    id: string
+    authorWallet: string
+    body: string
+    createdAt: Date
+    attachments: Array<{
+      id: string
+      fileName: string
+      mimeType: string
+      size: number
+      createdAt: Date
+    }>
+  }) => ({
+    id: m.id,
+    authorWallet: m.authorWallet,
+    body: m.body,
+    createdAt: m.createdAt.toISOString(),
+    attachments: m.attachments.map(serializeDisputeAttachment),
+  })
+
+  // GET /contracts/:id/dispute — parties only; aggregate for dispute UI.
+  app.get<{ Params: { id: string } }>('/contracts/:id/dispute', async (req, reply) => {
+    const claims = app.requireAuth(req)
+    const c = await prisma.contract.findUnique({
+      where: { id: req.params.id },
+      include: {
+        disputeMessages: {
+          orderBy: { createdAt: 'asc' },
+          include: { attachments: { orderBy: { createdAt: 'asc' } } },
+        },
+      },
+    })
+    if (!c) return reply.status(404).send({ code: 'NOT_FOUND', message: 'contract not found' })
+    const isParty = c.customerAddress === claims.sub || c.assigneeAddress === claims.sub
+    if (!isParty) {
+      return reply.status(403).send({ code: 'FORBIDDEN', message: 'not a party to this contract' })
+    }
+    if (c.status !== 'disputed') {
+      return reply.status(409).send({
+        code: 'INVALID_STATE',
+        message: `contract is not disputed (status='${c.status}')`,
+      })
+    }
+    const { disputeMessages, ...contractRow } = c
+    return {
+      contract: serialize(contractRow),
+      messages: disputeMessages.map(serializeDisputeMessage),
+    }
+  })
+
+  // POST /contracts/:id/dispute/attachments — base64 JSON upload (dev-friendly).
+  app.post<{ Params: { id: string } }>(
+    '/contracts/:id/dispute/attachments',
+    { bodyLimit: 6 * 1024 * 1024 },
+    async (req, reply) => {
+      const claims = app.requireAuth(req)
+      const c = await prisma.contract.findUnique({ where: { id: req.params.id } })
+      if (!c) return reply.status(404).send({ code: 'NOT_FOUND', message: 'contract not found' })
+      const isParty = c.customerAddress === claims.sub || c.assigneeAddress === claims.sub
+      if (!isParty) {
+        return reply.status(403).send({ code: 'FORBIDDEN', message: 'not a party to this contract' })
+      }
+      if (c.status !== 'disputed') {
+        return reply.status(409).send({
+          code: 'INVALID_STATE',
+          message: `attachments only while disputed (status='${c.status}')`,
+        })
+      }
+      const input = DisputeAttachmentUpload.parse(req.body)
+      if (!ALLOWED_DISPUTE_MIMES.has(input.mimeType)) {
+        return reply.status(400).send({
+          code: 'VALIDATION_ERROR',
+          message: `mime type not allowed: ${input.mimeType}`,
+        })
+      }
+      let buffer: Buffer
+      try {
+        buffer = Buffer.from(input.dataBase64, 'base64')
+      } catch {
+        return reply.status(400).send({ code: 'VALIDATION_ERROR', message: 'invalid base64' })
+      }
+      if (buffer.length === 0 || buffer.length > MAX_DISPUTE_FILE_BYTES) {
+        return reply.status(400).send({
+          code: 'VALIDATION_ERROR',
+          message: `file must be 1–${MAX_DISPUTE_FILE_BYTES} bytes`,
+        })
+      }
+
+      const { storageKey, size } = await saveDisputeUpload(
+        c.id,
+        input.fileName,
+        input.mimeType,
+        buffer,
+      )
+
+      const row = await prisma.disputeAttachment.create({
+        data: {
+          contractId: c.id,
+          uploadedBy: claims.sub,
+          storageKey,
+          fileName: input.fileName,
+          mimeType: input.mimeType,
+          size,
+        },
+      })
+
+      return serializeDisputeAttachment(row)
+    },
+  )
+
+  // POST /contracts/:id/dispute/messages
+  app.post<{ Params: { id: string } }>('/contracts/:id/dispute/messages', async (req, reply) => {
+    const claims = app.requireAuth(req)
+    const c = await prisma.contract.findUnique({ where: { id: req.params.id } })
+    if (!c) return reply.status(404).send({ code: 'NOT_FOUND', message: 'contract not found' })
+    const isParty = c.customerAddress === claims.sub || c.assigneeAddress === claims.sub
+    if (!isParty) {
+      return reply.status(403).send({ code: 'FORBIDDEN', message: 'not a party to this contract' })
+    }
+    if (c.status !== 'disputed') {
+      return reply.status(409).send({
+        code: 'INVALID_STATE',
+        message: `messages only while disputed (status='${c.status}')`,
+      })
+    }
+    const input = DisputeMessageCreate.parse(req.body)
+    const attachmentIds = input.attachmentIds ?? []
+
+    try {
+      const message = await prisma.$transaction(async (tx) => {
+        const msg = await tx.disputeMessage.create({
+          data: {
+            contractId: c.id,
+            authorWallet: claims.sub,
+            body: input.body,
+          },
+        })
+        if (attachmentIds.length > 0) {
+          const res = await tx.disputeAttachment.updateMany({
+            where: {
+              id: { in: attachmentIds },
+              contractId: c.id,
+              uploadedBy: claims.sub,
+              messageId: null,
+            },
+            data: { messageId: msg.id },
+          })
+          if (res.count !== attachmentIds.length) {
+            throw new Error('ATTACHMENT_MISMATCH')
+          }
+        }
+        return tx.disputeMessage.findUniqueOrThrow({
+          where: { id: msg.id },
+          include: { attachments: { orderBy: { createdAt: 'asc' } } },
+        })
+      })
+      return serializeDisputeMessage(message)
+    } catch (e) {
+      if ((e as Error).message === 'ATTACHMENT_MISMATCH') {
+        return reply.status(400).send({
+          code: 'VALIDATION_ERROR',
+          message: 'one or more attachment ids are invalid or already linked',
+        })
+      }
+      throw e
+    }
+  })
+
+  // GET /contracts/:id/dispute/attachments/:attachmentId/file
+  app.get<{ Params: { id: string; attachmentId: string } }>(
+    '/contracts/:id/dispute/attachments/:attachmentId/file',
+    async (req, reply) => {
+      const claims = app.requireAuth(req)
+      const c = await prisma.contract.findUnique({ where: { id: req.params.id } })
+      if (!c) return reply.status(404).send({ code: 'NOT_FOUND', message: 'contract not found' })
+      const isParty = c.customerAddress === claims.sub || c.assigneeAddress === claims.sub
+      if (!isParty) {
+        return reply.status(403).send({ code: 'FORBIDDEN', message: 'not a party to this contract' })
+      }
+      const att = await prisma.disputeAttachment.findFirst({
+        where: { id: req.params.attachmentId, contractId: c.id },
+      })
+      if (!att) {
+        return reply.status(404).send({ code: 'NOT_FOUND', message: 'attachment not found' })
+      }
+      reply.header('Content-Disposition', `inline; filename="${encodeURIComponent(att.fileName)}"`)
+      return reply.type(att.mimeType).send(readDisputeFileStream(att.storageKey))
+    },
+  )
 }

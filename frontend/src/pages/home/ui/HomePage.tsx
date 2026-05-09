@@ -36,6 +36,10 @@ export const HomePage: FC = () => {
         )
       case 'signed':
         return myContracts.filter((c) => c.status === 'SIGNED')
+      case 'review':
+        return myContracts.filter((c) => c.status === 'REVIEW')
+      case 'disputed':
+        return myContracts.filter((c) => c.status === 'DISPUTED')
       case 'completed':
         return myContracts.filter((c) => c.status === 'COMPLETED')
       case 'declined':

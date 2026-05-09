@@ -1,6 +1,13 @@
 import type { FC } from 'react'
 
-export type StatusFilter = 'all' | 'pending' | 'signed' | 'completed' | 'declined'
+export type StatusFilter =
+  | 'all'
+  | 'pending'
+  | 'signed'
+  | 'review'
+  | 'disputed'
+  | 'completed'
+  | 'declined'
 
 interface StatusFilterButtonsProps {
   selected: StatusFilter
@@ -12,6 +19,8 @@ const FILTERS: Array<{ value: StatusFilter; label: string }> = [
   { value: 'all', label: 'All' },
   { value: 'pending', label: 'Pending' },
   { value: 'signed', label: 'Signed' },
+  { value: 'review', label: 'Review' },
+  { value: 'disputed', label: 'Disputed' },
   { value: 'completed', label: 'Completed' },
   { value: 'declined', label: 'Declined' },
 ]

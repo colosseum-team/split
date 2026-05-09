@@ -54,7 +54,16 @@ const Env = z.object({
     .transform((v) => v === 'true'),
   QVAC_MODEL_ID: z.string().default('qvac-llamacpp'),
   QVAC_MODEL_VERSION: z.string().default('unknown'),
+
+  /** Local directory for dispute attachment bytes (dev / single-node). */
+  DISPUTE_UPLOAD_DIR: z.string().optional(),
 })
 
-export const config = Env.parse(process.env)
+const _env = Env.parse(process.env)
+const _backendDir = path.dirname(fileURLToPath(import.meta.url))
+
+export const config = {
+  ..._env,
+  DISPUTE_UPLOAD_DIR: _env.DISPUTE_UPLOAD_DIR ?? path.resolve(_backendDir, '../data/dispute-uploads'),
+}
 export const isDev = process.env.NODE_ENV !== 'production'

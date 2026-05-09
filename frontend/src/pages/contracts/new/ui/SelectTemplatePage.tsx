@@ -10,7 +10,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { CONTRACT_TEMPLATES, type ContractTemplateKey } from '@/entities/contract'
 import { useUserStore } from '@/entities/user'
-import { Card, AuroraBackdrop, Button } from '@/shared/ui'
+import { Card, AuroraBackdrop } from '@/shared/ui'
 
 const TEMPLATE_ICON: Record<ContractTemplateKey, typeof GlobeAltIcon> = {
   custom: PencilSquareIcon,
@@ -60,18 +60,6 @@ export const SelectTemplatePage: FC = () => {
             Pick a template or create your own contract from scratch. Every section stays editable
             in the next steps.
           </p>
-        </div>
-
-        <div className="mb-6">
-          <Button
-            onClick={() => handleSelect('custom')}
-            variant="primary"
-            size="md"
-            className="w-full md:w-auto"
-          >
-            <PencilSquareIcon className="w-5 h-5" />
-            <span>Create custom contract</span>
-          </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

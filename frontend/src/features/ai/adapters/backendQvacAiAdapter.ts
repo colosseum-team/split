@@ -65,7 +65,7 @@ const postJson = async <T>(url: string, body: unknown, token: string | null): Pr
     return (await response.json()) as T
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') {
-      throw new Error(`QVAC backend timed out after ${QVAC_BACKEND_TIMEOUT_MS}ms`)
+      throw new Error(`QVAC backend timed out after ${QVAC_BACKEND_TIMEOUT_MS}ms`, { cause: err })
     }
     throw err
   } finally {

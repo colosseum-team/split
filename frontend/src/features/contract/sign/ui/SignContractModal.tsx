@@ -56,8 +56,8 @@ export const SignContractModal: FC<SignContractModalProps> = ({
         <div className="flex flex-col gap-1 text-center">
           <h2 className="text-h2 text-(--color-text-primary)">Sign with your wallet</h2>
           <p className="text-body text-(--color-text-secondary)">
-            Your wallet will be asked to sign the SHA-256 hash of the contract text. No transaction
-            is broadcast.
+            Your wallet will be asked to sign a short text message that includes the SHA-256 hash of
+            the contract. No transaction is broadcast.
           </p>
         </div>
 

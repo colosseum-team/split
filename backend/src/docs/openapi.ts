@@ -170,6 +170,12 @@ export const openApiSpec = {
             maxLength: 64,
             nullable: true,
           },
+          disputeResolutionDays: {
+            type: "integer",
+            minimum: 1,
+            maximum: 30,
+            description: "Calendar days for the dispute exchange window (default 7)",
+          },
         },
       },
       PatchContractBody: {
@@ -187,6 +193,11 @@ export const openApiSpec = {
             minLength: 32,
             maxLength: 64,
             nullable: true,
+          },
+          disputeResolutionDays: {
+            type: "integer",
+            minimum: 1,
+            maximum: 30,
           },
         },
       },
@@ -228,6 +239,13 @@ export const openApiSpec = {
             type: "string",
             format: "date-time",
             nullable: true,
+          },
+          disputeResolutionDays: { type: "integer", minimum: 1, maximum: 30 },
+          disputeDueAt: {
+            type: "string",
+            format: "date-time",
+            nullable: true,
+            description: "End of dispute exchange window (UTC)",
           },
           disputeOutcome: {
             type: "string",
@@ -276,6 +294,63 @@ export const openApiSpec = {
       OpenDisputeBody: {
         type: "object",
         properties: { reason: { type: "string", maxLength: 2000 } },
+      },
+      DisputeAttachment: {
+        type: "object",
+        required: ["id", "fileName", "mimeType", "size", "createdAt"],
+        properties: {
+          id: { type: "string", format: "uuid" },
+          fileName: { type: "string" },
+          mimeType: { type: "string" },
+          size: { type: "integer", minimum: 0 },
+          createdAt: { type: "string", format: "date-time" },
+        },
+      },
+      DisputeMessage: {
+        type: "object",
+        required: ["id", "authorWallet", "body", "createdAt", "attachments"],
+        properties: {
+          id: { type: "string", format: "uuid" },
+          authorWallet: { type: "string" },
+          body: { type: "string" },
+          createdAt: { type: "string", format: "date-time" },
+          attachments: {
+            type: "array",
+            items: { $ref: "#/components/schemas/DisputeAttachment" },
+          },
+        },
+      },
+      DisputeAggregateResponse: {
+        type: "object",
+        required: ["contract", "messages"],
+        properties: {
+          contract: { $ref: "#/components/schemas/Contract" },
+          messages: {
+            type: "array",
+            items: { $ref: "#/components/schemas/DisputeMessage" },
+          },
+        },
+      },
+      DisputeMessageCreateBody: {
+        type: "object",
+        required: ["body"],
+        properties: {
+          body: { type: "string", minLength: 1, maxLength: 10_000 },
+          attachmentIds: {
+            type: "array",
+            maxItems: 10,
+            items: { type: "string", format: "uuid" },
+          },
+        },
+      },
+      DisputeAttachmentUploadBody: {
+        type: "object",
+        required: ["fileName", "mimeType", "dataBase64"],
+        properties: {
+          fileName: { type: "string", minLength: 1, maxLength: 255 },
+          mimeType: { type: "string", minLength: 1, maxLength: 128 },
+          dataBase64: { type: "string", minLength: 1 },
+        },
       },
       ResolveDisputeBody: {
         type: "object",
@@ -1103,6 +1178,115 @@ export const openApiSpec = {
           "404": { $ref: "#/components/responses/NotFound" },
           "409": { $ref: "#/components/responses/Conflict" },
           "400": { $ref: "#/components/responses/BadRequest" },
+        },
+      },
+      get: {
+        tags: ["Contracts"],
+        summary: "Dispute aggregate (contract + message thread)",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ $ref: "#/components/parameters/ContractId" }],
+        responses: {
+          "200": {
+            description: "OK",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/DisputeAggregateResponse" },
+              },
+            },
+          },
+          "401": { $ref: "#/components/responses/Unauthorized" },
+          "403": { $ref: "#/components/responses/Forbidden" },
+          "404": { $ref: "#/components/responses/NotFound" },
+          "409": { $ref: "#/components/responses/Conflict" },
+        },
+      },
+    },
+    "/contracts/{id}/dispute/attachments": {
+      post: {
+        tags: ["Contracts"],
+        summary: "Upload dispute attachment (base64 JSON)",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ $ref: "#/components/parameters/ContractId" }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/DisputeAttachmentUploadBody" },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Created attachment metadata",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/DisputeAttachment" },
+              },
+            },
+          },
+          "401": { $ref: "#/components/responses/Unauthorized" },
+          "403": { $ref: "#/components/responses/Forbidden" },
+          "404": { $ref: "#/components/responses/NotFound" },
+          "409": { $ref: "#/components/responses/Conflict" },
+          "400": { $ref: "#/components/responses/BadRequest" },
+        },
+      },
+    },
+    "/contracts/{id}/dispute/messages": {
+      post: {
+        tags: ["Contracts"],
+        summary: "Post dispute message (optional attachment ids)",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ $ref: "#/components/parameters/ContractId" }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/DisputeMessageCreateBody" },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Created message",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/DisputeMessage" },
+              },
+            },
+          },
+          "401": { $ref: "#/components/responses/Unauthorized" },
+          "403": { $ref: "#/components/responses/Forbidden" },
+          "404": { $ref: "#/components/responses/NotFound" },
+          "409": { $ref: "#/components/responses/Conflict" },
+          "400": { $ref: "#/components/responses/BadRequest" },
+        },
+      },
+    },
+    "/contracts/{id}/dispute/attachments/{attachmentId}/file": {
+      get: {
+        tags: ["Contracts"],
+        summary: "Download dispute attachment bytes",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { $ref: "#/components/parameters/ContractId" },
+          {
+            name: "attachmentId",
+            in: "path",
+            required: true,
+            schema: { type: "string", format: "uuid" },
+          },
+        ],
+        responses: {
+          "200": {
+            description: "File stream",
+            content: {
+              "application/octet-stream": { schema: { type: "string", format: "binary" } },
+            },
+          },
+          "401": { $ref: "#/components/responses/Unauthorized" },
+          "403": { $ref: "#/components/responses/Forbidden" },
+          "404": { $ref: "#/components/responses/NotFound" },
         },
       },
     },
