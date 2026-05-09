@@ -5,6 +5,10 @@ export type ContractStatus =
   | 'PENDING_SIGNING'
   | 'PARTIALLY_SIGNED'
   | 'SIGNED'
+  /** Work submitted / awaiting customer acceptance (aligns with backend `review`). */
+  | 'REVIEW'
+  /** Parties disagree — dispute opened (aligns with backend `disputed`). */
+  | 'DISPUTED'
   | 'COMPLETED'
   | 'DECLINED'
 
@@ -24,6 +28,21 @@ export interface ContractSignature {
 export interface ContractSignatures {
   customer?: ContractSignature
   performer?: ContractSignature
+}
+
+export interface DisputeMessage {
+  id: string
+  side: 'customer' | 'performer'
+  body: string
+  createdAt: string
+}
+
+export interface DisputeAttachment {
+  id: string
+  fileName: string
+  mimeType: string
+  sizeBytes: number
+  addedAt: string
 }
 
 export interface Contract {
@@ -53,6 +72,13 @@ export interface Contract {
 
   /** Calendar days for dispute exchange (set at creation; default 7). */
   disputeResolutionDays?: number
+
+  /** Set when status becomes DISPUTED (ISO). */
+  disputeOpenedAt?: string
+  /** End of dispute exchange window: openedAt + disputeResolutionDays (calendar days). */
+  disputeDueAt?: string
+  disputeMessages?: DisputeMessage[]
+  disputeAttachments?: DisputeAttachment[]
 
   /** Wallet of the user who created the contract (customer for customer-flow). */
   createdBy: string
