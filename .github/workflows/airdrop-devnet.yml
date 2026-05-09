@@ -1,0 +1,35 @@
+name: Airdrop devnet
+
+# Hits the public devnet faucet to top up the deploy authority. Useful
+# when the local-IP rate-limit kicks in — the runner gives us a fresh
+# IP from GitHub's pool which often has its own quota.
+
+on:
+  workflow_dispatch:
+    inputs:
+      pubkey:
+        description: 'Wallet pubkey (base58) to fund'
+        required: true
+        default: '7f9XhYCAmzuQJPgEyaiBZpX4F42z7WiewoNAuPVhFwtf'
+      target_sol:
+        description: 'Target balance in SOL'
+        required: false
+        default: '5'
+
+jobs:
+  airdrop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm i --no-save --no-audit --no-fund @solana/web3.js
+      - name: Run airdrop script
+        env:
+          DEPLOY_PUBKEY: ${{ github.event.inputs.pubkey }}
+          TARGET_SOL: ${{ github.event.inputs.target_sol }}
+          MAX_ATTEMPTS: '20'
+          SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL || 'https://api.devnet.solana.com' }}
+        run: node scripts/airdrop-deploy-authority.mjs
