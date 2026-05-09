@@ -54,14 +54,14 @@ jobs:
           set -euo pipefail
           ssh -i ~/.ssh/id_deploy -o BatchMode=yes "$SSH_USER@$SSH_HOST" bash -se <<'REMOTE'
           set -euo pipefail
-          # Copy the bench file into the running container; -w /app keeps
-          # node_modules resolution rooted at the workspace root where
-          # @qvac/sdk lives.
-          docker cp /tmp/bench-qvac.mjs split-backend:/tmp/bench-qvac.mjs
+          # The script must live inside /app so Node ESM resolves @qvac/sdk
+          # from /app/node_modules (NODE_PATH is ignored in ESM mode).
+          docker exec split-backend mkdir -p /app/scripts
+          docker cp /tmp/bench-qvac.mjs split-backend:/app/scripts/bench-qvac.mjs
 
           # Capture container CPU/mem snapshot for context.
           echo '--- container resources ---'
-          docker exec split-backend sh -c 'nproc && grep -m1 model.name /proc/cpuinfo 2>/dev/null || true; free -h | head -2'
+          docker exec split-backend sh -c 'echo "nproc:" $(nproc); grep -m1 "model name" /proc/cpuinfo 2>/dev/null || true; cat /proc/meminfo | head -3'
           echo '--- bench output ---'
-          docker exec -w /app split-backend node /tmp/bench-qvac.mjs
+          docker exec -w /app split-backend node scripts/bench-qvac.mjs
           REMOTE
