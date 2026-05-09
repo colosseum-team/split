@@ -34,11 +34,14 @@ type DisputeRunResponse = {
 }
 
 // Cap how long the SPA waits for backend QVAC inference. The Bare worker
-// can be CPU-bound on hosts without GPU acceleration; without this cap a
-// hung first call freezes the UI for the full edge timeout (5 min). On
-// timeout we throw — the AI service layer already catches this and falls
-// back to demo scenarios.
-const QVAC_BACKEND_TIMEOUT_MS = 30_000
+// is CPU-bound on hosts without GPU; on prod (4-core ARM, no GPU) a real
+// /ai/copilot-preview takes ~40s for the full production prompt
+// (`buildContractPrompt`, ~600 tokens in + ~800 tokens out at ~30 tok/s
+// after a properly primed warmup). 90s gives ~2x headroom so an
+// occasional slow run still yields real QVAC output instead of falling
+// back. On timeout we throw — service.ts catches this and falls back to
+// demo scenarios.
+const QVAC_BACKEND_TIMEOUT_MS = 90_000
 
 const postJson = async <T>(url: string, body: unknown, token: string | null): Promise<T> => {
   const controller = new AbortController()
