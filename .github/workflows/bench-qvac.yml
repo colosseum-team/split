@@ -1,0 +1,67 @@
+name: Bench QVAC
+
+# Runs the standalone scripts/bench-qvac.mjs inside the live split-backend
+# container on the deploy host via SSH + docker exec. Each node invocation
+# spawns its own Bare worker, so this does not interfere with the running
+# Fastify server. Reuses the same SSH secrets as the Deploy workflow.
+#
+# Trigger: Actions → "Bench QVAC" → "Run workflow".
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: bench-qvac
+  cancel-in-progress: true
+
+jobs:
+  bench:
+    name: Bench QVAC inference on prod host
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout (just to ship the bench script)
+        uses: actions/checkout@v4
+
+      - name: Configure SSH
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Copy bench script onto host
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          set -euo pipefail
+          scp -i ~/.ssh/id_deploy -o BatchMode=yes \
+            scripts/bench-qvac.mjs \
+            "$SSH_USER@$SSH_HOST:/tmp/bench-qvac.mjs"
+
+      - name: Run bench inside split-backend container
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes "$SSH_USER@$SSH_HOST" bash -se <<'REMOTE'
+          set -euo pipefail
+          # Copy the bench file into the running container; -w /app keeps
+          # node_modules resolution rooted at the workspace root where
+          # @qvac/sdk lives.
+          docker cp /tmp/bench-qvac.mjs split-backend:/tmp/bench-qvac.mjs
+
+          # Capture container CPU/mem snapshot for context.
+          echo '--- container resources ---'
+          docker exec split-backend sh -c 'nproc && grep -m1 model.name /proc/cpuinfo 2>/dev/null || true; free -h | head -2'
+          echo '--- bench output ---'
+          docker exec -w /app split-backend node /tmp/bench-qvac.mjs
+          REMOTE
