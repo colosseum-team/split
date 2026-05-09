@@ -29,6 +29,8 @@ const STATUS_LABEL: Record<ContractStatus, string> = {
   PENDING_SIGNING: 'Pending signing',
   PARTIALLY_SIGNED: 'Partially signed',
   SIGNED: 'Signed',
+  REVIEW: 'In review',
+  DISPUTED: 'Disputed',
   COMPLETED: 'Completed',
   DECLINED: 'Declined',
 }
@@ -40,7 +42,11 @@ const STATUS_HELP: Record<ContractStatus, ReactNode> = {
   PARTIALLY_SIGNED:
     'One party has already signed. The other party still needs to sign with their wallet to continue.',
   SIGNED:
-    'Both parties have signed. The Customer may confirm work completion when the deliverables are ready.',
+    'Both parties have signed. Work may move to review once deliverables are submitted (demo: use the Review mock or advance flow).',
+  REVIEW:
+    'Deliverables are in review. The Customer can confirm acceptance (complete) or open a dispute if deliverables are not acceptable.',
+  DISPUTED:
+    'A dispute is open. Use the dispute workspace below: disclaimer, deadline in calendar days, file uploads, comments, and Save (local demo).',
   COMPLETED:
     'The Customer has confirmed completion. This agreement is fulfilled from a workflow perspective (payment release is out of scope for this MVP).',
   DECLINED: 'This contract was declined and is no longer active.',
@@ -51,6 +57,8 @@ const STATUS_TONE: Record<ContractStatus, ConditionTileTone> = {
   PENDING_SIGNING: 'info',
   PARTIALLY_SIGNED: 'warning',
   SIGNED: 'brand',
+  REVIEW: 'warning',
+  DISPUTED: 'danger',
   COMPLETED: 'success',
   DECLINED: 'danger',
 }
@@ -64,6 +72,10 @@ const statusIcon = (status: ContractStatus): ReactNode => {
       return <DocumentArrowUpIcon className={className} />
     case 'SIGNED':
       return <DocumentTextIcon className={className} />
+    case 'REVIEW':
+      return <DocumentArrowUpIcon className={className} />
+    case 'DISPUTED':
+      return <ScaleIcon className={className} />
     case 'COMPLETED':
       return <DocumentCheckIcon className={className} />
     case 'DRAFT':
