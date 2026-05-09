@@ -87,11 +87,15 @@ class MockChain implements ChainService {
   }
 }
 
-import { SolanaChain } from './chain-solana.js'
-
-function buildChain(): ChainService {
-  if (config.MOCK_CHAIN) return new MockChain()
-  return new SolanaChain()
+// SolanaChain pulls in @coral-xyz/anchor (a CommonJS module that misbehaves
+// under ESM named imports) — only load it when actually needed so dev and
+// MOCK_CHAIN deploys aren't held hostage by anchor's interop quirks.
+let chainImpl: ChainService
+if (config.MOCK_CHAIN) {
+  chainImpl = new MockChain()
+} else {
+  const { SolanaChain } = await import('./chain-solana.js')
+  chainImpl = new SolanaChain()
 }
 
-export const chain: ChainService = buildChain()
+export const chain: ChainService = chainImpl

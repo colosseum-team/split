@@ -21,8 +21,13 @@ import {
   TransactionMessage,
   VersionedTransaction,
 } from '@solana/web3.js'
-import { AnchorProvider, BN, Program } from '@coral-xyz/anchor'
-import type { Idl, Wallet } from '@coral-xyz/anchor'
+import anchorPkg from '@coral-xyz/anchor'
+import type { Idl, Wallet, Program as ProgramType } from '@coral-xyz/anchor'
+// @coral-xyz/anchor publishes as CommonJS; in ESM consumers we must default-
+// import the namespace and pluck the symbols out, otherwise Node 22 throws
+// "Named export 'BN' not found" at module instantiation. Types still come
+// in as named-type-imports (zero runtime cost).
+const { AnchorProvider, BN, Program } = anchorPkg
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
@@ -116,7 +121,7 @@ export class SolanaChain implements ChainService {
   private readonly connection: Connection
   private readonly programId: PublicKey
   private readonly arbiterPubkey: PublicKey
-  private programInstance: Program | null = null
+  private programInstance: ProgramType | null = null
 
   constructor() {
     if (!config.SOLANA_PROGRAM_ID) {
@@ -136,7 +141,7 @@ export class SolanaChain implements ChainService {
    * to call instructions by name. Once the CI build emits the real IDL
    * + .ts the cast can be removed.
    */
-  private program(payer: PublicKey): Program {
+  private program(payer: PublicKey): ProgramType {
     if (this.programInstance) return this.programInstance
     const provider = new AnchorProvider(
       this.connection,
