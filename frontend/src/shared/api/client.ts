@@ -55,7 +55,7 @@ async function request<T>(path: string, opts: RequestOpts = {}): Promise<T> {
   })
 
   const text = await res.text()
-  let parsed: unknown = null
+  let parsed: unknown
   try {
     parsed = text ? JSON.parse(text) : null
   } catch {
