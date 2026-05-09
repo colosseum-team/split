@@ -185,9 +185,18 @@ let modelIdPromise: Promise<string> | null = null
 const getModelId = async () => {
   if (!modelIdPromise) {
     modelIdPromise = (async () => {
-      const { LLAMA_3_2_1B_INST_Q4_0, loadModel } = await ensureSdk()
+      // Switched from LLAMA_3_2_1B_INST_Q4_0 to LLAMA_TOOL_CALLING_1B_INST_Q4_K
+      // after a multi-model bench on prod ARM (scripts/bench-qvac.mjs):
+      //   LLAMA_3_2_1B_INST_Q4_0       copilot 32.4s, dispute 17.2s, schema-ok-with-noise
+      //   LLAMA_TOOL_CALLING_1B_Q4_K   copilot 29.3s, dispute 12.7s, schema-clean
+      // Same parameter count (1B), Q4_K quant (slightly tighter than Q4_0),
+      // and the model is fine-tuned for tool-calling JSON output — which is
+      // exactly the shape buildContractPrompt + buildDisputePrompt demand.
+      // Smaller candidates (Qwen 600M, BitNet 0.7B) can't follow the schema;
+      // larger Qwen 1.7B is faster but needs its own chat template (post-MVP).
+      const { LLAMA_TOOL_CALLING_1B_INST_Q4_K, loadModel } = await ensureSdk()
       return loadModel({
-        modelSrc: LLAMA_3_2_1B_INST_Q4_0,
+        modelSrc: LLAMA_TOOL_CALLING_1B_INST_Q4_K,
         modelConfig: { ctx_size: 4096 },
       })
     })()
