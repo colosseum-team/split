@@ -97,11 +97,10 @@ export const ContractForm: FC<ContractFormProps> = ({ templateKey }) => {
           qvac: qvacLocalAiAdapter,
         },
         qvacApi: {
-          baseUrl:
-            (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:4000',
+          baseUrl: (import.meta.env.VITE_API_URL as string | undefined) ?? '/api',
           getAuthToken: () => authToken,
         },
-        fallbackToDemo: false,
+        fallbackToDemo: true,
       }),
     [authToken],
   )

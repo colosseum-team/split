@@ -48,8 +48,7 @@ export const ContractViewPage: FC = () => {
           qvac: qvacLocalAiAdapter,
         },
         qvacApi: {
-          baseUrl:
-            (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:4000',
+          baseUrl: (import.meta.env.VITE_API_URL as string | undefined) ?? '/api',
           getAuthToken: () => authToken,
         },
       }),
