@@ -28,6 +28,11 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+      args:
+        # Optional: token for @qvac private packages. If empty, the public
+        # registry is used and only public @qvac packages resolve.
+        NPM_TOKEN: ${NPM_TOKEN:-}
+        QVAC_NPM_REGISTRY: ${QVAC_NPM_REGISTRY:-https://registry.npmjs.org}
     container_name: split-backend
     restart: unless-stopped
     depends_on:
@@ -37,6 +42,7 @@ services:
       NODE_ENV: production
       PORT: '4000'
       HOST: 0.0.0.0
+      LOG_LEVEL: ${LOG_LEVEL:-info}
       DATABASE_URL: postgres://${POSTGRES_USER:-split}:${POSTGRES_PASSWORD:-split}@postgres:5432/${POSTGRES_DB:-split}
       JWT_SECRET: ${JWT_SECRET:-dev-only-jwt-secret-change-me-please}
       CORS_ORIGIN: ${CORS_ORIGIN:-https://app.escros.work.gd,https://escros.work.gd,http://localhost:5173}
@@ -44,6 +50,14 @@ services:
       SOLANA_RPC_URL: ${SOLANA_RPC_URL:-https://api.devnet.solana.com}
       ARBITER_AUTOEXECUTE: ${ARBITER_AUTOEXECUTE:-false}
       ARBITER_PRIVATE_KEY: ${ARBITER_PRIVATE_KEY:-}
+      # QVAC in-process inference (Bare runtime). On first start the worker
+      # downloads the model and may take several minutes; the patched SDK
+      # honours QVAC_RPC_INIT_TIMEOUT_MS so 900s avoids spurious init aborts
+      # on slower hosts. Set QVAC_ENABLED=false to fall back to demo-only.
+      QVAC_ENABLED: ${QVAC_ENABLED:-true}
+      QVAC_MODEL_ID: ${QVAC_MODEL_ID:-qvac-llamacpp}
+      QVAC_MODEL_VERSION: ${QVAC_MODEL_VERSION:-0.17.4}
+      QVAC_RPC_INIT_TIMEOUT_MS: ${QVAC_RPC_INIT_TIMEOUT_MS:-900000}
     # Not published on the host. Reached only through the frontend nginx
     # `/api/*` reverse proxy on the compose network. Avoids requiring an
     # extra hole in the Oracle security list and keeps the API same-origin
@@ -59,7 +73,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 20s
+      # First QVAC init can take many minutes on cold disk caches; let the
+      # container come up before failing healthcheck triggers a restart loop.
+      start_period: 300s
 
   frontend:
     build:

@@ -9,6 +9,7 @@
     "landing"
   ],
   "scripts": {
+    "postinstall": "patch-package",
     "build": "npm run build --workspaces --if-present",
     "dev": "npm run dev --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
@@ -18,5 +19,8 @@
     "contracts": "npm run dev -w contracts",
     "landing": "npm run dev -w landing",
     "install-all": "npm install"
+  },
+  "devDependencies": {
+    "patch-package": "^8.0.1"
   }
 }

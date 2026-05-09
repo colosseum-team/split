@@ -56,7 +56,14 @@ This is the minimum meaningful integration that touches core escrow lifecycle de
 
 ### Backend
 
-- Stores only outputs and metadata (optional), no cloud inference.
+As implemented in this repository (dev/prod stacks):
+
+- QVAC runs **inside the API process** via `@qvac/sdk` (Bare subprocess for native crates). Inference is triggered by **`POST /ai/copilot-preview`** (no persistence) and **`POST /contracts/:id/copilot-run`** / **`dispute-run`** (persisted `AiOutput`). There is **no** separate HTTP `qvac-worker` service.
+- Contract copilot request bodies support **`input.technicalAssignment`** (single textarea) **or** the four section strings (`scope`, `deliverables`, `timeline`, `paymentTerms`); see `backend/docs/qvac-backend.md`.
+
+Earlier plan sketch (stores-only / optional fields):
+
+- Inference still runs locally (same host/container as split); no cloud LLM API.
 - Suggested fields:
   - `ai_result_json`
   - `model_id`
@@ -77,7 +84,8 @@ This is the minimum meaningful integration that touches core escrow lifecycle de
 
 Input:
 
-- Contract draft fields:
+- **Backend API shape:** `technicalAssignment` (single draft) **or** `scope` + `deliverables` + `timeline` + `paymentTerms` (see `backend/docs/qvac-backend.md`).
+- **Conceptual checklist** when authoring drafts:
   - scope
   - milestones
   - deliverables

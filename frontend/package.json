@@ -17,6 +17,8 @@
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "@noble/hashes": "^1.8.0",
+    "@qvac/embed-llamacpp": "latest",
+    "@qvac/llm-llamacpp": "latest",
     "@solana/wallet-adapter-base": "^0.9.27",
     "@solana/wallet-adapter-react": "^0.15.39",
     "@solana/wallet-adapter-react-ui": "^0.9.39",
