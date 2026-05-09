@@ -33,22 +33,41 @@ type DisputeRunResponse = {
   }
 }
 
+// Cap how long the SPA waits for backend QVAC inference. The Bare worker
+// can be CPU-bound on hosts without GPU acceleration; without this cap a
+// hung first call freezes the UI for the full edge timeout (5 min). On
+// timeout we throw — the AI service layer already catches this and falls
+// back to demo scenarios.
+const QVAC_BACKEND_TIMEOUT_MS = 30_000
+
 const postJson = async <T>(url: string, body: unknown, token: string | null): Promise<T> => {
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      ...(token ? { authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify(body),
-  })
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), QVAC_BACKEND_TIMEOUT_MS)
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    })
 
-  if (!response.ok) {
-    const text = await response.text()
-    throw new Error(`QVAC backend request failed (${response.status}): ${text}`)
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(`QVAC backend request failed (${response.status}): ${text}`)
+    }
+
+    return (await response.json()) as T
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error(`QVAC backend timed out after ${QVAC_BACKEND_TIMEOUT_MS}ms`)
+    }
+    throw err
+  } finally {
+    clearTimeout(timer)
   }
-
-  return (await response.json()) as T
 }
 
 export function createBackendQvacAiAdapter(options: BackendQvacAiAdapterOptions) {
