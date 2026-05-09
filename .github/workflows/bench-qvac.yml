@@ -71,5 +71,13 @@ jobs:
           echo '--- container resources ---'
           docker exec split-backend sh -c 'echo "nproc:" $(nproc); grep -m1 "model name" /proc/cpuinfo 2>/dev/null || true; cat /proc/meminfo | head -3'
           echo '--- bench output ---'
-          docker exec -e MODELS="$MODELS" -w /app split-backend node scripts/bench-qvac.mjs
+          # HOME=/tmp/qvac-bench-home redirects every QVAC path lookup
+          # (.qvac/registry-corestore + .qvac/models) into a private tree
+          # so the Bare worker spawned by this bench doesn't compete with
+          # the live Fastify worker for the registry RocksDB lock.
+          docker exec split-backend mkdir -p /tmp/qvac-bench-home
+          docker exec \
+            -e MODELS="$MODELS" \
+            -e HOME=/tmp/qvac-bench-home \
+            -w /app split-backend node scripts/bench-qvac.mjs
           REMOTE

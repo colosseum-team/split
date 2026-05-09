@@ -227,31 +227,14 @@ async function main() {
   console.log('node:', process.version, '| arch:', process.arch, process.platform)
   console.log('QVAC_RPC_INIT_TIMEOUT_MS:', process.env.QVAC_RPC_INIT_TIMEOUT_MS ?? '(unset)')
 
-  // The live Fastify worker holds an fd-lock on /root/.qvac/.registry-cache.
-  // To avoid "File descriptor could not be locked" when downloading models
-  // the live worker hasn't seen, point this benchmark at a separate cache
-  // directory via a one-off QVAC config file.
+  // The live Fastify worker holds an fd-lock on its registry-corestore at
+  // ${HOME}/.qvac/registry-corestore/. Spawning a second Bare worker that
+  // uses the same path produces "File descriptor could not be locked".
+  // Workflow runs us with HOME=/tmp/qvac-bench-home so every QVAC path
+  // lookup (registry + models) lands in a private tree.
   const fs = await import('node:fs')
-  const path = await import('node:path')
-  const benchCacheDir = process.env.QVAC_BENCH_CACHE_DIR ?? '/tmp/qvac-bench'
-  fs.mkdirSync(benchCacheDir, { recursive: true })
-  const benchConfigPath = path.join(benchCacheDir, 'qvac.config.js')
-  fs.writeFileSync(
-    benchConfigPath,
-    `export default ${JSON.stringify(
-      {
-        cacheDirectory: benchCacheDir,
-        loggerLevel: 'info',
-        loggerConsoleOutput: true,
-        httpDownloadConcurrency: 3,
-        httpConnectionTimeoutMs: 30000,
-      },
-      null,
-      2,
-    )}\n`,
-  )
-  process.env.QVAC_CONFIG_PATH = benchConfigPath
-  console.log('cacheDirectory:', benchCacheDir, '(isolated from live worker)')
+  const benchHome = process.env.HOME ?? '/tmp/qvac-bench-home'
+  console.log('HOME:', benchHome, '(isolated from live worker if not /root)')
 
   const modelsArg =
     process.env.MODELS ??
@@ -273,10 +256,10 @@ async function main() {
   }
 
   // Best-effort cleanup of the bench cache dir so subsequent runs don't
-  // pile up GGUF files. Keeping the config file around is harmless.
+  // pile up GGUF files (~4GB across all candidates).
   try {
-    fs.rmSync(benchCacheDir + '/models', { recursive: true, force: true })
-    console.log('cleaned up', benchCacheDir + '/models')
+    fs.rmSync(benchHome + '/.qvac', { recursive: true, force: true })
+    console.log('cleaned up', benchHome + '/.qvac')
   } catch {}
 
   console.log('')
