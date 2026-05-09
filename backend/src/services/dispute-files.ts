@@ -1,6 +1,7 @@
 import { createReadStream } from 'node:fs'
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { nanoid } from 'nanoid'
 import { config } from '../config.js'
 
