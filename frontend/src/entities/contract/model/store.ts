@@ -47,6 +47,8 @@ export const useContractsStore = create<ContractsState>()(
         const now = new Date().toISOString()
         const number = `№ ${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000) + 1000)}`
 
+        const disputeResolutionDays = input.disputeResolutionDays ?? 7
+
         const text = renderContractText({
           template,
           customer: input.customer,
@@ -60,6 +62,7 @@ export const useContractsStore = create<ContractsState>()(
           endDate: input.endDate,
           additionalTerms: input.additionalTerms,
           contractNumber: number,
+          disputeResolutionDays,
         })
 
         const contract: Contract = {
@@ -80,6 +83,7 @@ export const useContractsStore = create<ContractsState>()(
           text,
           signatures: {},
           status: 'PENDING_SIGNING',
+          disputeResolutionDays,
           createdBy,
           createdAt: now,
           updatedAt: now,

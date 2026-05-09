@@ -8,6 +8,7 @@ import {
   DocumentCheckIcon,
   DocumentIcon,
   DocumentTextIcon,
+  ExclamationTriangleIcon,
   PencilSquareIcon,
   ScaleIcon,
   XCircleIcon,
@@ -182,6 +183,27 @@ export const ContractConditions: FC<ContractConditionsProps> = ({ contract, onSe
                     agreement.
                   </p>
                 ),
+            })
+          }
+        />
+
+        <ConditionTile
+          icon={<ExclamationTriangleIcon />}
+          title="Dispute window"
+          value={`${contract.disputeResolutionDays ?? 7} days`}
+          tone="info"
+          onClick={() =>
+            onSelectDetail({
+              title: 'Dispute resolution window',
+              icon: <ExclamationTriangleIcon className="h-7 w-7" />,
+              value: `${contract.disputeResolutionDays ?? 7} calendar days`,
+              description: (
+                <p>
+                  If a dispute is opened, both sides have this many calendar days to share comments
+                  and supporting files. The platform does not provide legal advice; this timer is
+                  for organizing the exchange only.
+                </p>
+              ),
             })
           }
         />

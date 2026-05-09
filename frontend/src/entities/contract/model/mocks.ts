@@ -69,6 +69,7 @@ export const buildPerformerSeedContract = (performerWallet: string): Contract | 
       },
     },
     status: 'PARTIALLY_SIGNED',
+    disputeResolutionDays: 7,
     createdBy: customer.walletAddress!,
     createdAt: now.toISOString(),
     updatedAt: now.toISOString(),

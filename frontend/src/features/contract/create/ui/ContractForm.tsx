@@ -79,6 +79,7 @@ export const ContractForm: FC<ContractFormProps> = ({ templateKey }) => {
       currency: template?.defaultCurrencyCode ?? 'SOL',
       jurisdictionCode: template?.defaultJurisdictionCode ?? 'US',
       additionalTerms: '',
+      disputeResolutionDays: 7,
     },
   })
   const technicalAssignment = form.watch('technicalAssignment') ?? ''
@@ -121,7 +122,7 @@ export const ContractForm: FC<ContractFormProps> = ({ templateKey }) => {
     ['subject'],
     ['startDate', 'endDate'],
     ['amount', 'currency'],
-    ['jurisdictionCode'],
+    ['jurisdictionCode', 'disputeResolutionDays'],
   ]
 
   const goNext = async () => {
@@ -220,6 +221,7 @@ export const ContractForm: FC<ContractFormProps> = ({ templateKey }) => {
         startDate: values.startDate,
         endDate: values.endDate,
         additionalTerms: values.additionalTerms || undefined,
+        disputeResolutionDays: values.disputeResolutionDays,
       },
       walletAddress,
     )

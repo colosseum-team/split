@@ -36,6 +36,8 @@ export interface ContractTextData {
   endDate?: string | Date | null
   additionalTerms?: string
   contractNumber?: string
+  /** Calendar days for dispute exchange if a dispute is opened. */
+  disputeResolutionDays?: number
 }
 
 export const CONTRACT_TEMPLATES: ReadonlyArray<ContractTemplate> = [
@@ -260,6 +262,7 @@ export const renderContractText = (data: ContractTextData): string => {
     endDate,
     additionalTerms,
     contractNumber,
+    disputeResolutionDays = 7,
   } = data
 
   const number =
@@ -288,6 +291,7 @@ export const renderContractText = (data: ContractTextData): string => {
     '4. PRICE AND PAYMENT',
     `Total cost: ${formatMoney(amount, currency)}.`,
     "Payment is released to the Performer upon the Customer's confirmation of work completion.",
+    `If a dispute is opened, the parties have ${disputeResolutionDays} calendar days to exchange written positions and supporting materials; further resolution follows platform policy and applicable law.`,
     '',
     '5. JURISDICTION',
     `This agreement shall be governed by the laws of ${formatJurisdiction(jurisdictionCode)}.`,

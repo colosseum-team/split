@@ -51,6 +51,9 @@ export interface Contract {
   signatures: ContractSignatures
   status: ContractStatus
 
+  /** Calendar days for dispute exchange (set at creation; default 7). */
+  disputeResolutionDays?: number
+
   /** Wallet of the user who created the contract (customer for customer-flow). */
   createdBy: string
 
@@ -70,4 +73,6 @@ export interface CreateContractInput {
   startDate: string | null
   endDate: string | null
   additionalTerms?: string
+  /** Dispute resolution window in calendar days (1–30). */
+  disputeResolutionDays?: number
 }
