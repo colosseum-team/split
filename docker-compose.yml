@@ -48,7 +48,9 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:-https://app.escros.work.gd,https://escros.work.gd,http://localhost:5173}
       MOCK_CHAIN: ${MOCK_CHAIN:-true}
       SOLANA_RPC_URL: ${SOLANA_RPC_URL:-https://api.devnet.solana.com}
+      SOLANA_PROGRAM_ID: ${SOLANA_PROGRAM_ID:-}
       ARBITER_AUTOEXECUTE: ${ARBITER_AUTOEXECUTE:-false}
+      ARBITER_PUBLIC_KEY: ${ARBITER_PUBLIC_KEY:-}
       ARBITER_PRIVATE_KEY: ${ARBITER_PRIVATE_KEY:-}
       # QVAC in-process inference (Bare runtime). On first start the worker
       # downloads the model and may take several minutes; the patched SDK

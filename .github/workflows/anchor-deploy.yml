@@ -1,0 +1,183 @@
+name: Anchor Deploy (devnet)
+
+# Builds the escrow Anchor program and deploys it to Solana devnet.
+# Requires three GitHub Actions secrets:
+#
+#   SOLANA_PROGRAM_KEYPAIR        JSON byte array (e.g. [12,34,...]) — the
+#                                 keypair whose pubkey is the program ID;
+#                                 must match `declare_id!()` in
+#                                 programs/escrow/src/lib.rs
+#   SOLANA_DEPLOY_AUTHORITY       JSON byte array — wallet that pays for
+#                                 the deploy (.so storage rent + fees).
+#                                 Needs ~5 SOL on devnet to cover a
+#                                 first-time deploy.
+#   SOLANA_RPC_URL                Devnet RPC (defaults to api.devnet if
+#                                 unset). Use a Helius/Triton/QuickNode
+#                                 endpoint if public RPC rate-limits the
+#                                 deploy.
+#
+# Bootstrap (one-time, do this locally):
+#
+#   solana-keygen new -o /tmp/escros-program.json --no-bip39-passphrase
+#   solana-keygen pubkey /tmp/escros-program.json
+#     → copy this pubkey into:
+#         - declare_id!(...)        contracts/programs/escrow/src/lib.rs
+#         - [programs.devnet]       contracts/Anchor.toml
+#         - "address"               backend/idl/escros_escrow.json
+#   cat /tmp/escros-program.json    → paste as secret SOLANA_PROGRAM_KEYPAIR
+#
+#   solana-keygen new -o /tmp/escros-deploy.json --no-bip39-passphrase
+#   solana airdrop 2 $(solana-keygen pubkey /tmp/escros-deploy.json) -u devnet
+#   solana airdrop 2 $(solana-keygen pubkey /tmp/escros-deploy.json) -u devnet
+#   cat /tmp/escros-deploy.json     → paste as secret SOLANA_DEPLOY_AUTHORITY
+
+on:
+  workflow_dispatch:
+    inputs:
+      cluster:
+        description: 'Solana cluster (devnet | mainnet-beta)'
+        required: false
+        default: 'devnet'
+
+concurrency:
+  group: anchor-deploy-${{ github.event.inputs.cluster }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Anchor build + deploy ${{ github.event.inputs.cluster }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain (1.79, BPF target supported by anchor 0.30.1)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: '1.79'
+          components: 'rustfmt'
+
+      - name: Cache cargo registry + git
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            contracts/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('contracts/Cargo.lock', 'contracts/Cargo.toml', 'contracts/programs/**/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Install Solana CLI (1.18.18)
+        run: |
+          set -euo pipefail
+          sh -c "$(curl -sSfL https://release.solana.com/v1.18.18/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+
+      - name: Install Anchor CLI (0.30.1)
+        run: |
+          set -euo pipefail
+          cargo install --git https://github.com/coral-xyz/anchor avm --locked --force
+          avm install 0.30.1
+          avm use 0.30.1
+          anchor --version
+
+      - name: Restore deploy keypairs from secrets
+        env:
+          PROGRAM_KEYPAIR: ${{ secrets.SOLANA_PROGRAM_KEYPAIR }}
+          DEPLOY_AUTHORITY: ${{ secrets.SOLANA_DEPLOY_AUTHORITY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${PROGRAM_KEYPAIR}" ] || [ -z "${DEPLOY_AUTHORITY}" ]; then
+            echo "::error::SOLANA_PROGRAM_KEYPAIR and SOLANA_DEPLOY_AUTHORITY must be set as repo secrets — see workflow file header for bootstrap instructions"
+            exit 1
+          fi
+          mkdir -p contracts/target/deploy ~/.config/solana
+          printf '%s' "${PROGRAM_KEYPAIR}" > contracts/target/deploy/escros_escrow-keypair.json
+          printf '%s' "${DEPLOY_AUTHORITY}" > ~/.config/solana/id.json
+          chmod 600 contracts/target/deploy/escros_escrow-keypair.json ~/.config/solana/id.json
+
+      - name: Configure Solana CLI for cluster
+        env:
+          CLUSTER: ${{ github.event.inputs.cluster }}
+          SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
+        run: |
+          set -euo pipefail
+          if [ -n "${SOLANA_RPC_URL}" ]; then
+            solana config set --url "${SOLANA_RPC_URL}"
+          else
+            solana config set --url "https://api.${CLUSTER}.solana.com"
+          fi
+          echo "deploy authority: $(solana-keygen pubkey)"
+          echo "deploy authority balance:"
+          solana balance || true
+          echo "program id (from keypair):"
+          solana-keygen pubkey contracts/target/deploy/escros_escrow-keypair.json
+
+      - name: Verify declare_id! matches the keypair
+        run: |
+          set -euo pipefail
+          PROGRAM_ID=$(solana-keygen pubkey contracts/target/deploy/escros_escrow-keypair.json)
+          SOURCE_ID=$(grep -oE 'declare_id!\("[^"]+"\)' contracts/programs/escrow/src/lib.rs | sed -E 's/declare_id!\("([^"]+)"\)/\1/')
+          echo "program keypair pubkey: $PROGRAM_ID"
+          echo "declare_id! in lib.rs:  $SOURCE_ID"
+          if [ "$PROGRAM_ID" != "$SOURCE_ID" ]; then
+            echo "::error::declare_id!() does not match program keypair pubkey — patch contracts/programs/escrow/src/lib.rs and retry"
+            exit 1
+          fi
+
+      - name: Anchor build
+        working-directory: contracts
+        run: anchor build
+
+      - name: Anchor deploy (${{ github.event.inputs.cluster }})
+        working-directory: contracts
+        run: |
+          set -euo pipefail
+          anchor deploy --provider.cluster ${{ github.event.inputs.cluster }}
+          PROGRAM_ID=$(solana-keygen pubkey target/deploy/escros_escrow-keypair.json)
+          echo "✅ Deployed escros_escrow → $PROGRAM_ID"
+          echo "## Anchor deploy result" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**cluster:** ${{ github.event.inputs.cluster }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**program id:** \`$PROGRAM_ID\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**deployer:** \`$(solana-keygen pubkey)\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Sync IDL into backend
+        working-directory: contracts
+        run: |
+          set -euo pipefail
+          if [ -f target/idl/escros_escrow.json ]; then
+            cp target/idl/escros_escrow.json ../backend/idl/escros_escrow.json
+            echo "✅ Updated backend/idl/escros_escrow.json from anchor build output"
+          fi
+
+      - name: Upload IDL + program binary as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: anchor-build-${{ github.event.inputs.cluster }}
+          path: |
+            contracts/target/idl/*.json
+            contracts/target/deploy/*.so
+          retention-days: 30
+
+      - name: Open follow-up PR if IDL changed
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet backend/idl/; then
+            echo "no IDL drift — nothing to commit"
+            exit 0
+          fi
+          BRANCH="ci/sync-idl-$(date +%s)"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add backend/idl/
+          git commit -m "ci: sync escros_escrow IDL from anchor build (${{ github.event.inputs.cluster }})"
+          git push origin "$BRANCH"
+          gh pr create --base main --head "$BRANCH" \
+            --title "ci: sync escros_escrow IDL from anchor build" \
+            --body "Auto-generated by Anchor Deploy workflow (run \`${{ github.run_id }}\`). The hand-written IDL drifted from the freshly built one — merge to keep backend in sync."

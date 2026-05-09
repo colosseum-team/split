@@ -87,32 +87,11 @@ class MockChain implements ChainService {
   }
 }
 
-class SolanaChainStub implements ChainService {
-  readonly mode = 'solana' as const
-  async buildCreateEscrowTx(): Promise<BuildTxResult> {
-    throw notImplemented('buildCreateEscrowTx')
-  }
-  async buildFundTx(): Promise<{ tx: string }> {
-    throw notImplemented('buildFundTx')
-  }
-  async buildApproveTx(): Promise<{ tx: string }> {
-    throw notImplemented('buildApproveTx')
-  }
-  async verifyTxSignature(): Promise<boolean> {
-    throw notImplemented('verifyTxSignature')
-  }
-  async resolveDispute(): Promise<ResolveDisputeResult> {
-    throw notImplemented('resolveDispute')
-  }
+import { SolanaChain } from './chain-solana.js'
+
+function buildChain(): ChainService {
+  if (config.MOCK_CHAIN) return new MockChain()
+  return new SolanaChain()
 }
 
-function notImplemented(method: string) {
-  return Object.assign(
-    new Error(
-      `SolanaChain.${method} not implemented yet — wire up Anchor IDL when contracts/ workspace ships`,
-    ),
-    { statusCode: 501 },
-  )
-}
-
-export const chain: ChainService = config.MOCK_CHAIN ? new MockChain() : new SolanaChainStub()
+export const chain: ChainService = buildChain()

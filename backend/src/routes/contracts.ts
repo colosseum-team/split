@@ -220,6 +220,45 @@ export const contractsRoutes: FastifyPluginAsync = async (app) => {
     return serialize(rehashed)
   })
 
+  // POST /contracts/:id/fund-tx — build the unsigned `fund` instruction.
+  // The customer's wallet adapter signs and submits; the resulting
+  // signature comes back via /contracts/:id/fund (below).
+  app.post<{ Params: { id: string } }>('/contracts/:id/fund-tx', async (req, reply) => {
+    const claims = app.requireAuth(req)
+    const c = await prisma.contract.findUnique({ where: { id: req.params.id } })
+    if (!c) return reply.status(404).send({ code: 'NOT_FOUND', message: 'contract not found' })
+    if (c.customerAddress !== claims.sub) {
+      return reply.status(403).send({ code: 'FORBIDDEN', message: 'only customer can fund' })
+    }
+    if (!c.onchainAddress) {
+      return reply.status(409).send({
+        code: 'NO_ESCROW_PDA',
+        message: 'contract has no on-chain escrow — was MOCK_CHAIN=true at creation?',
+      })
+    }
+    const { tx } = await chain.buildFundTx(c.onchainAddress, claims.sub)
+    return { tx, escrowAddress: c.onchainAddress }
+  })
+
+  // POST /contracts/:id/release-tx — build the unsigned `release` instruction
+  // for the customer to sign during approve.
+  app.post<{ Params: { id: string } }>('/contracts/:id/release-tx', async (req, reply) => {
+    const claims = app.requireAuth(req)
+    const c = await prisma.contract.findUnique({ where: { id: req.params.id } })
+    if (!c) return reply.status(404).send({ code: 'NOT_FOUND', message: 'contract not found' })
+    if (c.customerAddress !== claims.sub) {
+      return reply.status(403).send({ code: 'FORBIDDEN', message: 'only customer can release' })
+    }
+    if (!c.onchainAddress) {
+      return reply.status(409).send({
+        code: 'NO_ESCROW_PDA',
+        message: 'contract has no on-chain escrow — was MOCK_CHAIN=true at creation?',
+      })
+    }
+    const { tx } = await chain.buildApproveTx(c.onchainAddress, claims.sub)
+    return { tx, escrowAddress: c.onchainAddress }
+  })
+
   // POST /contracts/:id/fund — customer records funding tx.
   app.post<{ Params: { id: string } }>('/contracts/:id/fund', async (req, reply) => {
     const claims = app.requireAuth(req)
