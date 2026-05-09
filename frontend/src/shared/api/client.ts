@@ -102,10 +102,39 @@ export interface SetRoleResponse {
   token: string
 }
 
+// Chain bundle returned by /contracts. unsignedTx is base64-encoded
+// VersionedTransaction; in MOCK_CHAIN mode it's a sentinel string the
+// SPA must NOT pass to the wallet adapter (use api.health().chain to
+// branch). escrowAddress is the on-chain PDA (or a mockPda_… string).
+export interface CreateContractRequest {
+  title: string
+  description: string
+  amount: string | number
+  currency?: string
+  deadline?: string
+  assigneeAddress?: string
+  disputeResolutionDays?: number
+}
+
+export interface CreateContractResponse {
+  id: string
+  customerAddress: string
+  assigneeAddress: string | null
+  status: string
+  amount: string
+  currency: string
+  contractHash: string
+  onchainAddress: string
+  unsignedTx: string
+  createdAt: string
+  updatedAt: string
+}
+
 // ---------- endpoints ----------
 
 export const api = {
-  health: () => request<{ status: 'ok'; chain: string; rpcUrl: string }>('/health'),
+  health: () =>
+    request<{ status: 'ok'; chain: 'mock' | 'solana'; rpcUrl: string; qvac?: unknown }>('/health'),
 
   authNonce: (walletAddress: string) =>
     request<NonceResponse>('/auth/nonce', {
@@ -134,4 +163,37 @@ export const api = {
       body: { role: feRoleToBe(role) },
       token,
     }),
+
+  contracts: {
+    create: (token: string, body: CreateContractRequest) =>
+      request<CreateContractResponse>('/contracts', { method: 'POST', body, token }),
+
+    buildFundTx: (token: string, contractId: string) =>
+      request<{ tx: string; escrowAddress: string }>(`/contracts/${contractId}/fund-tx`, {
+        method: 'POST',
+        body: {},
+        token,
+      }),
+
+    recordFund: (token: string, contractId: string, txSignature: string) =>
+      request<unknown>(`/contracts/${contractId}/fund`, {
+        method: 'POST',
+        body: { txSignature },
+        token,
+      }),
+
+    buildReleaseTx: (token: string, contractId: string) =>
+      request<{ tx: string; escrowAddress: string }>(`/contracts/${contractId}/release-tx`, {
+        method: 'POST',
+        body: {},
+        token,
+      }),
+
+    recordApprove: (token: string, contractId: string, txSignature: string) =>
+      request<unknown>(`/contracts/${contractId}/approve`, {
+        method: 'POST',
+        body: { txSignature },
+        token,
+      }),
+  },
 }

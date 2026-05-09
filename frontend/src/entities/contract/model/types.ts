@@ -83,6 +83,21 @@ export interface Contract {
   /** Wallet of the user who created the contract (customer for customer-flow). */
   createdBy: string
 
+  /** Backend contract id (only set after backend POST /contracts succeeded). */
+  backendId?: string
+  /** On-chain escrow PDA (real base58 in solana mode, "mockPda_…" in mock mode). */
+  onchainAddress?: string
+  /** Tx signature from the customer's signed initialize tx (real base58 or "mockTx_…"). */
+  initTxSignature?: string
+  /** Tx signature from the customer's signed fund tx. */
+  fundTxSignature?: string
+  /** Tx signature from the customer's signed release tx. */
+  releaseTxSignature?: string
+  /** 'mock' or 'solana' — sourced from /health at the time of creation. */
+  chainMode?: 'mock' | 'solana'
+  /** Last error from the chain link flow (sticky until the next attempt). */
+  chainError?: string
+
   createdAt: string
   updatedAt: string
 }

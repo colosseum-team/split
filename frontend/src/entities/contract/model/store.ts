@@ -37,6 +37,27 @@ interface ContractsState {
   seededPerformerWallets: string[]
 
   create: (input: CreateContractInput, createdBy: string) => Contract
+  /**
+   * Attach backend + on-chain provenance to a locally-created contract.
+   * Called after the SPA has POSTed the contract to the backend and (in
+   * solana mode) signed+submitted the initialize tx.
+   */
+  linkChain: (
+    id: string,
+    chain: Partial<
+      Pick<
+        Contract,
+        | 'backendId'
+        | 'onchainAddress'
+        | 'initTxSignature'
+        | 'fundTxSignature'
+        | 'releaseTxSignature'
+        | 'chainMode'
+        | 'textHash'
+        | 'chainError'
+      >
+    >,
+  ) => void
   getById: (id: string) => Contract | undefined
   signByWallet: (id: string, signature: ContractSignature, side: 'customer' | 'performer') => void
   /**
@@ -121,6 +142,14 @@ export const useContractsStore = create<ContractsState>()(
 
           set((state) => ({ contracts: [contract, ...state.contracts] }))
           return contract
+        },
+
+        linkChain: (id, chain) => {
+          set((state) => ({
+            contracts: state.contracts.map((c) =>
+              c.id === id ? { ...c, ...chain, updatedAt: new Date().toISOString() } : c,
+            ),
+          }))
         },
 
         getById: (id) => get().contracts.find((c) => c.id === id),

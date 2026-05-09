@@ -4,6 +4,7 @@ import { BoltIcon, ChevronLeftIcon, DocumentTextIcon } from '@heroicons/react/24
 import { useContractsStore } from '@/entities/contract'
 import { useUserStore } from '@/entities/user'
 import { ContractSummary } from '@/widgets/contract'
+import { EscrowChainPanel } from '@/widgets/contract/EscrowChainPanel'
 import { SignContractModal } from '@/features/contract/sign'
 import { ConfirmCompletionModal } from '@/features/contract/complete'
 import { OpenDisputeModal } from '@/features/contract/dispute'
@@ -281,6 +282,8 @@ export const ContractViewPage: FC = () => {
             </div>
           }
         />
+
+        <EscrowChainPanel contract={contract} />
 
         {contract.status === 'DISPUTED' && (
           <DisputeWorkspace

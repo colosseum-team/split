@@ -1,6 +1,7 @@
 import { type FC, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
+import { useWallet } from '@solana/wallet-adapter-react'
 import { type ContractTemplateKey, findTemplate, useContractsStore } from '@/entities/contract'
 import { useUserStore } from '@/entities/user'
 import { structuredTechnicalAssignmentFromCopilot } from '@/features/ai/contractCopilotText'
@@ -8,6 +9,8 @@ import { createLocalAiService } from '@/features/ai/service'
 import { demoLocalAiAdapter } from '@/features/ai/adapters/demoLocalAiAdapter'
 import { qvacLocalAiAdapter } from '@/features/ai/adapters/qvacLocalAiAdapter'
 import type { DemoScenario } from '@/features/ai/types'
+import { api, ApiError } from '@/shared/api/client'
+import { signAndSendChainTx, ChainTxError } from '@/shared/lib/chainTx'
 import { Button, FormWrapper } from '@/shared/ui'
 import { Step1Parties } from './steps/Step1Parties'
 import { Step2TechnicalAssignment } from './steps/Step2TechnicalAssignment'
@@ -44,6 +47,8 @@ export const ContractForm: FC<ContractFormProps> = ({ templateKey }) => {
   const setUserProfile = useUserStore((s) => s.setProfile)
   const walletAddress = useUserStore((s) => s.walletAddress)
   const createContract = useContractsStore((s) => s.create)
+  const linkChain = useContractsStore((s) => s.linkChain)
+  const wallet = useWallet()
 
   const template = useMemo(() => findTemplate(templateKey), [templateKey])
 
@@ -188,7 +193,7 @@ export const ContractForm: FC<ContractFormProps> = ({ templateKey }) => {
     }
   }
 
-  const handleSubmit = form.handleSubmit((values) => {
+  const handleSubmit = form.handleSubmit(async (values) => {
     if (!walletAddress) return
     if (!template) return
 
@@ -225,6 +230,64 @@ export const ContractForm: FC<ContractFormProps> = ({ templateKey }) => {
       },
       walletAddress,
     )
+
+    // Mirror the contract onto the backend + on-chain escrow PDA in
+    // the background. Navigate now so the user sees the contract page
+    // immediately; chain status (linking → ready / error) is rendered
+    // from the contract object on that page.
+    void (async () => {
+      try {
+        if (!authToken) {
+          throw new Error('No auth token; finish wallet sign-in before creating a contract')
+        }
+        if (!values.performerWalletAddress) {
+          throw new Error(
+            'Performer wallet address is required for the on-chain escrow PDA',
+          )
+        }
+        const health = await api.health()
+        const created = await api.contracts.create(authToken, {
+          title: contract.title,
+          description: contract.subject || contract.text.slice(0, 200),
+          amount: String(contract.amount),
+          currency: contract.currency,
+          deadline: contract.endDate ?? undefined,
+          assigneeAddress: values.performerWalletAddress,
+          disputeResolutionDays: values.disputeResolutionDays,
+        })
+
+        if (health.chain === 'mock') {
+          linkChain(contract.id, {
+            backendId: created.id,
+            onchainAddress: created.onchainAddress,
+            initTxSignature: created.unsignedTx,
+            chainMode: 'mock',
+            textHash: created.contractHash,
+            chainError: undefined,
+          })
+        } else {
+          const { signature } = await signAndSendChainTx(created.unsignedTx, wallet)
+          linkChain(contract.id, {
+            backendId: created.id,
+            onchainAddress: created.onchainAddress,
+            initTxSignature: signature,
+            chainMode: 'solana',
+            textHash: created.contractHash,
+            chainError: undefined,
+          })
+        }
+      } catch (err) {
+        const msg =
+          err instanceof ApiError
+            ? `${err.code}: ${err.message}`
+            : err instanceof ChainTxError
+              ? err.message
+              : err instanceof Error
+                ? err.message
+                : 'Unknown chain error'
+        linkChain(contract.id, { chainError: msg })
+      }
+    })()
 
     navigate(`/contracts/${contract.id}`, { replace: true })
   })
