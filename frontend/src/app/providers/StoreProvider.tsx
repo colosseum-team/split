@@ -4,18 +4,30 @@ import { useContractsStore } from '@/entities/contract'
 
 /**
  * Bootstraps app-level state:
- * - if the user is a performer, seeds a mock contract once (so the inbox isn't empty).
+ * - seeds gallery mocks (statuses + extra REVIEW rows); for customer only, more REVIEW inbox demos.
+ * - if the user is a performer, also seeds a partial mock once (inbox not empty).
  */
 export function StoreProvider({ children }: PropsWithChildren) {
   const role = useUserStore((s) => s.role)
   const walletAddress = useUserStore((s) => s.walletAddress)
   const seedPerformerMockOnce = useContractsStore((s) => s.seedPerformerMockOnce)
+  const ensureCompletedDisputeDemo = useContractsStore((s) => s.ensureCompletedDisputeDemo)
+  const ensureStatusGalleryDemos = useContractsStore((s) => s.ensureStatusGalleryDemos)
 
   useEffect(() => {
-    if (role === 'performer' && walletAddress) {
+    if (!walletAddress || !role) return
+    ensureStatusGalleryDemos(walletAddress, role)
+    ensureCompletedDisputeDemo(walletAddress, role)
+    if (role === 'performer') {
       seedPerformerMockOnce(walletAddress)
     }
-  }, [role, walletAddress, seedPerformerMockOnce])
+  }, [
+    role,
+    walletAddress,
+    ensureCompletedDisputeDemo,
+    ensureStatusGalleryDemos,
+    seedPerformerMockOnce,
+  ])
 
   return children
 }
