@@ -31,11 +31,21 @@ const Env = z.object({
     .default('true')
     .transform((v) => v === 'true'),
   SOLANA_RPC_URL: z.string().default('https://api.devnet.solana.com'),
+  // Required when MOCK_CHAIN=false. Set to the program ID printed by
+  // `anchor deploy` (also surfaced by the deploy.yml workflow as a step
+  // output and committed back to backend/idl/escros_escrow.json#address).
+  SOLANA_PROGRAM_ID: z.string().optional(),
 
   ARBITER_AUTOEXECUTE: z
     .string()
     .default('false')
     .transform((v) => v === 'true'),
+  // base58 wallet pubkey of the arbiter — must match the on-chain
+  // `arbiter` field stored at PDA init. SolanaChain refuses to start
+  // without this when MOCK_CHAIN=false.
+  ARBITER_PUBLIC_KEY: z.string().optional(),
+  // base64-encoded secret key (or JSON byte array) for the same arbiter.
+  // Only required when ARBITER_AUTOEXECUTE=true (backend signs ResolveDispute).
   ARBITER_PRIVATE_KEY: z.string().optional(),
 
   QVAC_ENABLED: z
