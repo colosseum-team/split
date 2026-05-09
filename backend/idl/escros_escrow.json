@@ -1,5 +1,5 @@
 {
-  "address": "Escros11111111111111111111111111111111111",
+  "address": "9BQEARFHXQo3vpSwfcsRwYwbrbvfJ6XR52i5DzYyLWZA",
   "metadata": {
     "name": "escros_escrow",
     "version": "0.1.0",
@@ -9,91 +9,242 @@
   "instructions": [
     {
       "name": "initialize",
-      "discriminator": [175, 175, 109, 31, 13, 152, 155, 237],
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
       "accounts": [
         {
           "name": "escrow",
           "writable": true,
           "pda": {
             "seeds": [
-              { "kind": "const", "value": [101, 115, 99, 114, 111, 119] },
-              { "kind": "account", "path": "customer" },
-              { "kind": "arg", "path": "contract_hash" }
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "customer"
+              },
+              {
+                "kind": "arg",
+                "path": "contract_hash"
+              }
             ]
           }
         },
-        { "name": "customer", "writable": true, "signer": true },
-        { "name": "performer" },
-        { "name": "arbiter" },
-        { "name": "system_program", "address": "11111111111111111111111111111111" }
+        {
+          "name": "customer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "performer"
+        },
+        {
+          "name": "arbiter"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
       ],
       "args": [
-        { "name": "contract_hash", "type": { "array": ["u8", 32] } },
-        { "name": "amount", "type": "u64" }
+        {
+          "name": "contract_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        }
       ]
     },
     {
       "name": "fund",
-      "discriminator": [218, 188, 111, 221, 152, 113, 174, 7],
+      "discriminator": [
+        218,
+        188,
+        111,
+        221,
+        152,
+        113,
+        174,
+        7
+      ],
       "accounts": [
         {
           "name": "escrow",
           "writable": true,
           "pda": {
             "seeds": [
-              { "kind": "const", "value": [101, 115, 99, 114, 111, 119] },
-              { "kind": "account", "path": "customer" },
-              { "kind": "account", "path": "escrow.contract_hash", "account": "Escrow" }
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "customer"
+              },
+              {
+                "kind": "account",
+                "path": "escrow.contract_hash",
+                "account": "Escrow"
+              }
             ]
           }
         },
-        { "name": "customer", "writable": true, "signer": true },
-        { "name": "system_program", "address": "11111111111111111111111111111111" }
+        {
+          "name": "customer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
       ],
       "args": []
     },
     {
       "name": "release",
-      "discriminator": [253, 249, 15, 206, 28, 127, 193, 241],
+      "discriminator": [
+        253,
+        249,
+        15,
+        206,
+        28,
+        127,
+        193,
+        241
+      ],
       "accounts": [
         {
           "name": "escrow",
           "writable": true,
           "pda": {
             "seeds": [
-              { "kind": "const", "value": [101, 115, 99, 114, 111, 119] },
-              { "kind": "account", "path": "escrow.customer", "account": "Escrow" },
-              { "kind": "account", "path": "escrow.contract_hash", "account": "Escrow" }
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "escrow.customer",
+                "account": "Escrow"
+              },
+              {
+                "kind": "account",
+                "path": "escrow.contract_hash",
+                "account": "Escrow"
+              }
             ]
           }
         },
-        { "name": "signer", "writable": true, "signer": true },
-        { "name": "recipient", "writable": true }
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "recipient",
+          "writable": true
+        }
       ],
       "args": []
     },
     {
       "name": "resolve_dispute",
-      "discriminator": [231, 7, 19, 169, 136, 245, 180, 158],
+      "discriminator": [
+        231,
+        7,
+        19,
+        169,
+        136,
+        245,
+        180,
+        158
+      ],
       "accounts": [
         {
           "name": "escrow",
           "writable": true,
           "pda": {
             "seeds": [
-              { "kind": "const", "value": [101, 115, 99, 114, 111, 119] },
-              { "kind": "account", "path": "escrow.customer", "account": "Escrow" },
-              { "kind": "account", "path": "escrow.contract_hash", "account": "Escrow" }
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "escrow.customer",
+                "account": "Escrow"
+              },
+              {
+                "kind": "account",
+                "path": "escrow.contract_hash",
+                "account": "Escrow"
+              }
             ]
           }
         },
-        { "name": "arbiter", "signer": true },
-        { "name": "recipient", "writable": true }
+        {
+          "name": "arbiter",
+          "signer": true
+        },
+        {
+          "name": "recipient",
+          "writable": true
+        }
       ],
       "args": [
         {
           "name": "outcome",
-          "type": { "defined": { "name": "DisputeOutcome" } }
+          "type": {
+            "defined": {
+              "name": "DisputeOutcome"
+            }
+          }
         }
       ]
     }
@@ -101,16 +252,49 @@
   "accounts": [
     {
       "name": "Escrow",
-      "discriminator": [31, 213, 123, 187, 186, 22, 218, 155]
+      "discriminator": [
+        31,
+        213,
+        123,
+        187,
+        186,
+        22,
+        218,
+        155
+      ]
     }
   ],
   "errors": [
-    { "code": 6000, "name": "ZeroAmount", "msg": "escrow amount must be > 0" },
-    { "code": 6001, "name": "WrongState", "msg": "escrow is not in the expected state for this instruction" },
-    { "code": 6002, "name": "Unauthorized", "msg": "signer is not authorised for this instruction" },
-    { "code": 6003, "name": "WrongRecipient", "msg": "recipient does not match the address recorded on the escrow" },
-    { "code": 6004, "name": "InsufficientFunds", "msg": "escrow PDA balance is below the recorded amount (was it funded?)" },
-    { "code": 6005, "name": "Overflow", "msg": "lamport arithmetic overflowed" }
+    {
+      "code": 6000,
+      "name": "ZeroAmount",
+      "msg": "escrow amount must be > 0"
+    },
+    {
+      "code": 6001,
+      "name": "WrongState",
+      "msg": "escrow is not in the expected state for this instruction"
+    },
+    {
+      "code": 6002,
+      "name": "Unauthorized",
+      "msg": "signer is not authorised for this instruction"
+    },
+    {
+      "code": 6003,
+      "name": "WrongRecipient",
+      "msg": "recipient does not match the address recorded on the escrow"
+    },
+    {
+      "code": 6004,
+      "name": "InsufficientFunds",
+      "msg": "escrow PDA balance is below the recorded amount (was it funded?)"
+    },
+    {
+      "code": 6005,
+      "name": "Overflow",
+      "msg": "lamport arithmetic overflowed"
+    }
   ],
   "types": [
     {
@@ -118,17 +302,53 @@
       "type": {
         "kind": "struct",
         "fields": [
-          { "name": "customer", "type": "pubkey" },
-          { "name": "performer", "type": "pubkey" },
-          { "name": "arbiter", "type": "pubkey" },
-          { "name": "contract_hash", "type": { "array": ["u8", 32] } },
-          { "name": "amount", "type": "u64" },
-          { "name": "state", "type": { "defined": { "name": "EscrowState" } } },
+          {
+            "name": "customer",
+            "type": "pubkey"
+          },
+          {
+            "name": "performer",
+            "type": "pubkey"
+          },
+          {
+            "name": "arbiter",
+            "type": "pubkey"
+          },
+          {
+            "name": "contract_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "state",
+            "type": {
+              "defined": {
+                "name": "EscrowState"
+              }
+            }
+          },
           {
             "name": "dispute_outcome",
-            "type": { "option": { "defined": { "name": "DisputeOutcome" } } }
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "DisputeOutcome"
+                }
+              }
+            }
           },
-          { "name": "bump", "type": "u8" }
+          {
+            "name": "bump",
+            "type": "u8"
+          }
         ]
       }
     },
@@ -137,11 +357,21 @@
       "type": {
         "kind": "enum",
         "variants": [
-          { "name": "Initialized" },
-          { "name": "Funded" },
-          { "name": "Completed" },
-          { "name": "Disputed" },
-          { "name": "Resolved" }
+          {
+            "name": "Initialized"
+          },
+          {
+            "name": "Funded"
+          },
+          {
+            "name": "Completed"
+          },
+          {
+            "name": "Disputed"
+          },
+          {
+            "name": "Resolved"
+          }
         ]
       }
     },
@@ -150,8 +380,12 @@
       "type": {
         "kind": "enum",
         "variants": [
-          { "name": "PerformerWon" },
-          { "name": "CustomerWon" }
+          {
+            "name": "PerformerWon"
+          },
+          {
+            "name": "CustomerWon"
+          }
         ]
       }
     }
