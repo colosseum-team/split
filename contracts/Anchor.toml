@@ -7,10 +7,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-escros_escrow = "Escros11111111111111111111111111111111111"
+escros_escrow = "9BQEARFHXQo3vpSwfcsRwYwbrbvfJ6XR52i5DzYyLWZA"
 
 [programs.devnet]
-escros_escrow = "Escros11111111111111111111111111111111111"
+escros_escrow = "9BQEARFHXQo3vpSwfcsRwYwbrbvfJ6XR52i5DzYyLWZA"
 
 [registry]
 url = "https://api.apr.dev"

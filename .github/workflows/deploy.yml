@@ -73,6 +73,15 @@ jobs:
           DEPLOY_SHA: ${{ steps.sha.outputs.sha }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          # Optional: when these are set the backend flips to the real
+          # SolanaChain. If MOCK_CHAIN is empty / absent the compose
+          # default (true) is used — preserves the mock-friendly path.
+          MOCK_CHAIN: ${{ secrets.MOCK_CHAIN }}
+          SOLANA_PROGRAM_ID: ${{ secrets.SOLANA_PROGRAM_ID }}
+          SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
+          ARBITER_PUBLIC_KEY: ${{ secrets.SOLANA_ARBITER_PUBLIC_KEY }}
+          ARBITER_PRIVATE_KEY: ${{ secrets.SOLANA_ARBITER_KEYPAIR }}
+          ARBITER_AUTOEXECUTE: ${{ secrets.ARBITER_AUTOEXECUTE }}
         run: |
           set -euo pipefail
           # Pass DEPLOY_SHA + secrets as command-line variable assignments rather
@@ -84,6 +93,12 @@ jobs:
             DEPLOY_SHA="$DEPLOY_SHA" \
             JWT_SECRET="$JWT_SECRET" \
             POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
+            MOCK_CHAIN="$MOCK_CHAIN" \
+            SOLANA_PROGRAM_ID="$SOLANA_PROGRAM_ID" \
+            SOLANA_RPC_URL="$SOLANA_RPC_URL" \
+            ARBITER_PUBLIC_KEY="$ARBITER_PUBLIC_KEY" \
+            ARBITER_PRIVATE_KEY="$ARBITER_PRIVATE_KEY" \
+            ARBITER_AUTOEXECUTE="$ARBITER_AUTOEXECUTE" \
             bash -se <<'REMOTE'
           set -euo pipefail
 
@@ -96,12 +111,19 @@ jobs:
           git checkout --detach "$DEPLOY_SHA"
 
           # Materialise secrets into ~/split/.env. docker-compose reads .env
-          # automatically and interpolates ${JWT_SECRET}/${POSTGRES_PASSWORD}
-          # into the backend service environment. printf avoids the
-          # nested-heredoc indent problem; chmod 600 keeps it readable only
-          # by the deploy user.
-          printf 'JWT_SECRET=%s\nPOSTGRES_PASSWORD=%s\n' \
-            "${JWT_SECRET}" "${POSTGRES_PASSWORD}" > .env
+          # automatically and interpolates ${VAR} into service env. Chain
+          # vars only land if the secret is set so MOCK_CHAIN stays the
+          # compose default (true) when no chain bootstrap has happened.
+          {
+            printf 'JWT_SECRET=%s\n' "${JWT_SECRET}"
+            printf 'POSTGRES_PASSWORD=%s\n' "${POSTGRES_PASSWORD}"
+            [ -n "${MOCK_CHAIN}" ] && printf 'MOCK_CHAIN=%s\n' "${MOCK_CHAIN}"
+            [ -n "${SOLANA_PROGRAM_ID}" ] && printf 'SOLANA_PROGRAM_ID=%s\n' "${SOLANA_PROGRAM_ID}"
+            [ -n "${SOLANA_RPC_URL}" ] && printf 'SOLANA_RPC_URL=%s\n' "${SOLANA_RPC_URL}"
+            [ -n "${ARBITER_PUBLIC_KEY}" ] && printf 'ARBITER_PUBLIC_KEY=%s\n' "${ARBITER_PUBLIC_KEY}"
+            [ -n "${ARBITER_PRIVATE_KEY}" ] && printf "ARBITER_PRIVATE_KEY=%s\n" "${ARBITER_PRIVATE_KEY}"
+            [ -n "${ARBITER_AUTOEXECUTE}" ] && printf 'ARBITER_AUTOEXECUTE=%s\n' "${ARBITER_AUTOEXECUTE}"
+          } > .env
           chmod 600 .env
 
           # Build any new images and roll containers; --remove-orphans clears
