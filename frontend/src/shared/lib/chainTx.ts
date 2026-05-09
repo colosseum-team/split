@@ -25,12 +25,13 @@ export function getChainConnection(): Connection {
 }
 
 export class ChainTxError extends Error {
-  constructor(
-    message: string,
-    public readonly cause?: unknown,
-  ) {
+  // Plain field + constructor body assignment — TS' erasableSyntaxOnly
+  // (frontend tsconfig) forbids parameter properties.
+  readonly cause?: unknown
+  constructor(message: string, cause?: unknown) {
     super(message)
     this.name = 'ChainTxError'
+    this.cause = cause
   }
 }
 
