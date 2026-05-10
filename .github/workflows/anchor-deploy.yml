@@ -95,7 +95,7 @@ jobs:
           # `time` 0.3.34, which fails to compile under Rust 1.80+
           # (E0282 inference change). Cargo will resolve a newer time
           # (>=0.3.35) when the lock isn't enforced.
-          cargo install --git https://github.com/coral-xyz/anchor --tag v0.30.1 --force anchor-cli
+          cargo install --git https://github.com/coral-xyz/anchor --tag v0.31.1 --force anchor-cli
           anchor --version
 
       - name: Restore deploy keypairs from secrets
