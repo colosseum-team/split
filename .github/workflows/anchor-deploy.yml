@@ -52,14 +52,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust toolchain (1.85, edition2024 stable)
+      - name: Install Rust toolchain (latest stable)
         uses: dtolnay/rust-toolchain@stable
         with:
-          # Several transitive deps in the anchor 0.30 / solana 1.18 stack
-          # have started requiring edition2024 (toml_edit-0.25.11+, etc).
-          # 1.85 is the first stable that exposes edition2024; older
-          # toolchains fail program build with "feature edition2024 is required".
-          toolchain: '1.85'
+          # Without --locked the anchor-cli build picks newest transitives
+          # (time-0.3.47 needs 1.88, icu_*-2.2 needs 1.86, etc.). Pinning
+          # exact versions of all transitives via cargo update --precise
+          # is brittle vs. ecosystem churn — just take the current stable.
+          toolchain: stable
           components: 'rustfmt'
 
       - name: Cache cargo registry + git
