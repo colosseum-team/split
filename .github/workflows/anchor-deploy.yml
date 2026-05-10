@@ -142,30 +142,30 @@ jobs:
             exit 1
           fi
 
-      - name: Anchor build
+      - name: Build program with bundled Solana cargo (skip anchor wrapper)
         working-directory: contracts
-        env:
-          # Force anchor + cargo to use the bundled Solana cargo for
-          # everything — otherwise the host's stable cargo writes a v4
-          # lockfile that the bundled rustc can't parse.
-          CARGO: /home/runner/.local/share/solana/install/active_release/bin/cargo
         run: |
           set -euo pipefail
+          # `anchor build` runs `cargo metadata` against the workspace via
+          # the host cargo, which writes a v4 lockfile that build-sbf's
+          # older bundled cargo can't parse. Skip the wrapper and call
+          # cargo build-sbf directly — same end artefact (target/deploy/
+          # escros_escrow.so) without the host-cargo detour.
           rm -f Cargo.lock
-          # Use the bundled Solana toolchain end-to-end. --no-idl skips
-          # the host-cargo IDL extraction (we ship a hand-written IDL at
-          # backend/idl/escros_escrow.json that the build will overwrite
-          # anyway when target/idl/*.json lands).
-          anchor build --no-idl
+          cargo build-sbf --manifest-path programs/escrow/Cargo.toml
+          ls -la target/deploy/
 
-      - name: Anchor deploy (${{ github.event.inputs.cluster }})
+      - name: Deploy program (${{ github.event.inputs.cluster }})
         working-directory: contracts
         run: |
           set -euo pipefail
-          anchor deploy --provider.cluster ${{ github.event.inputs.cluster }}
+          solana program deploy \
+            --keypair ~/.config/solana/id.json \
+            --program-id target/deploy/escros_escrow-keypair.json \
+            target/deploy/escros_escrow.so
           PROGRAM_ID=$(solana-keygen pubkey target/deploy/escros_escrow-keypair.json)
           echo "✅ Deployed escros_escrow → $PROGRAM_ID"
-          echo "## Anchor deploy result" >> "$GITHUB_STEP_SUMMARY"
+          echo "## Deploy result" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "**cluster:** ${{ github.event.inputs.cluster }}" >> "$GITHUB_STEP_SUMMARY"
           echo "**program id:** \`$PROGRAM_ID\`" >> "$GITHUB_STEP_SUMMARY"
