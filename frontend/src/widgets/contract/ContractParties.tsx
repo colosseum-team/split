@@ -53,7 +53,7 @@ const PartyCard: FC<{
       type="button"
       onClick={onSelect}
       className={`
-        group relative overflow-hidden flex w-full min-w-0 flex-col gap-4
+        group flex w-full min-w-0 min-h-[180px] flex-col gap-4
         rounded-[var(--radius-xl)] border p-4 md:p-5 text-left cursor-pointer
         backdrop-blur-md shadow-[var(--shadow-sm)]
         transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]
@@ -85,7 +85,7 @@ const PartyCard: FC<{
         </div>
         <div className="min-w-0 flex-1 flex flex-col gap-0.5">
           <div className="text-body font-bold text-(--color-text-primary) wrap-break-word leading-tight">
-            {party.fullName}
+            {party.fullName || '—'}
           </div>
           {party.companyName ? (
             <div className="text-[12.5px] font-medium text-(--color-text-secondary) wrap-break-word">

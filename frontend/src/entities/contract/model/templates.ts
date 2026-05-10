@@ -48,7 +48,25 @@ export const CONTRACT_TEMPLATES: ReadonlyArray<ContractTemplate> = [
     description:
       'Start from scratch and write your own terms, scope, and conditions without preset wording.',
     defaultSubject: '',
-    defaultTechnicalAssignment: '',
+    defaultTechnicalAssignment: `1. Project goal
+Describe the outcome the Customer wants to achieve in 1–2 sentences.
+
+2. Scope of work
+List the concrete activities included in the engagement (max 6–8 bullets).
+Mention what is explicitly out of scope.
+
+3. Deliverables
+What the Performer hands over at the end (files, deployments, accounts, …).
+
+4. Acceptance criteria
+Objective conditions the Customer will use to confirm the work is done.
+
+5. Timeline
+Indicative milestones / final deadline.
+
+6. Customer obligations
+What the Customer must provide (assets, access, decisions) and by when.
+`,
     defaultJurisdictionCode: 'US',
     defaultCurrencyCode: 'SOL',
     defaultAmount: 0,
