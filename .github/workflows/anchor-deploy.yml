@@ -142,22 +142,20 @@ jobs:
             exit 1
           fi
 
-      - name: Build program with bundled Solana cargo (skip anchor wrapper)
+      - name: Build program with bundled Solana toolchain
         working-directory: contracts
         run: |
           set -euo pipefail
-          # PATH-isolation: the host's stable cargo (installed by
-          # dtolnay/rust-toolchain) writes v4 lockfiles that the bundled
-          # Solana cargo can't parse — even cargo-build-sbf seems to
-          # invoke whichever `cargo` is first on PATH for metadata.
-          # Force PATH to contain ONLY Solana's bin + system bins for
-          # this step so rustup's cargo can't leak in.
-          export PATH="$HOME/.local/share/solana/install/active_release/bin:/usr/local/bin:/usr/bin:/bin"
-          echo "PATH=$PATH"
-          which cargo
-          cargo --version
+          SOLANA_BIN="$HOME/.local/share/solana/install/active_release/bin"
+          echo "Solana bin contents:"
+          ls "$SOLANA_BIN"
+          # cargo-build-sbf is the Solana SBF toolchain entrypoint; it
+          # bundles its own rustc and writes lockfiles in its own format.
+          # Calling the absolute path side-steps the host rustup cargo
+          # entirely (which would write a v4 lockfile and break bundled
+          # parsing).
           rm -f Cargo.lock
-          cargo build-sbf --manifest-path programs/escrow/Cargo.toml
+          "$SOLANA_BIN/cargo-build-sbf" --manifest-path programs/escrow/Cargo.toml
           ls -la target/deploy/
 
       - name: Deploy program (${{ github.event.inputs.cluster }})
