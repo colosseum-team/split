@@ -241,9 +241,7 @@ export const ContractForm: FC<ContractFormProps> = ({ templateKey }) => {
           throw new Error('No auth token; finish wallet sign-in before creating a contract')
         }
         if (!values.performerWalletAddress) {
-          throw new Error(
-            'Performer wallet address is required for the on-chain escrow PDA',
-          )
+          throw new Error('Performer wallet address is required for the on-chain escrow PDA')
         }
         const health = await api.health()
         const created = await api.contracts.create(authToken, {

@@ -41,14 +41,13 @@ const STATUS_HELP: Record<ContractStatus, ReactNode> = {
     'Neither party has signed yet. Both Customer and Performer must sign with their wallets before work can begin under this agreement.',
   PARTIALLY_SIGNED:
     'One party has already signed. The other party still needs to sign with their wallet to continue.',
-  SIGNED:
-    'Both parties have signed. Work may move to review once deliverables are submitted (demo: use the Review mock or advance flow).',
+  SIGNED: 'Both parties have signed. Work moves to review once the Performer submits deliverables.',
   REVIEW:
     'Deliverables are in review. The Customer can confirm acceptance (complete) or open a dispute if deliverables are not acceptable.',
   DISPUTED:
-    'A dispute is open. Use the dispute workspace below: disclaimer, deadline in calendar days, file uploads, comments, and Save (local demo).',
+    'A dispute is open. Use the dispute workspace below to exchange written positions and supporting files within the calendar window.',
   COMPLETED:
-    'The Customer has confirmed completion. This agreement is fulfilled from a workflow perspective (payment release is out of scope for this MVP).',
+    'The Customer has confirmed completion and this agreement is fulfilled. The on-chain release transaction settles the escrow payout.',
   DECLINED: 'This contract was declined and is no longer active.',
 }
 
@@ -201,12 +200,12 @@ export const ContractConditions: FC<ContractConditionsProps> = ({ contract, onSe
 
         <ConditionTile
           icon={<ExclamationTriangleIcon />}
-          title="Dispute window"
+          title="Dispute terms"
           value={`${contract.disputeResolutionDays ?? 7} days`}
           tone="info"
           onClick={() =>
             onSelectDetail({
-              title: 'Dispute resolution window',
+              title: 'Dispute terms',
               icon: <ExclamationTriangleIcon className="h-7 w-7" />,
               value: `${contract.disputeResolutionDays ?? 7} calendar days`,
               description: (

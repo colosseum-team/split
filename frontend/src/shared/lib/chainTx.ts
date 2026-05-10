@@ -84,7 +84,7 @@ export async function signAndSendChainTx(
 
   // Best-effort confirmation. Devnet sometimes drops sigs on the floor;
   // we still return `signature` so the backend can index it later.
-  let confirmed = false
+  let confirmed: boolean
   try {
     const latest = await conn.getLatestBlockhash('confirmed')
     const result = await conn.confirmTransaction(

@@ -22,15 +22,11 @@ export const DEMO_STATUS_IDS = {
   DECLINED: 'demo-status-declined',
 } as const satisfies Record<ContractStatus, string>
 
-/** Extra REVIEW-only gallery rows (same status, different stable URLs). */
-export const EXTRA_REVIEW_GALLERY_IDS = [
+/** Legacy demo ids removed from seeding — still stripped on persist migrate v4. */
+export const LEGACY_REMOVED_GALLERY_IDS = [
   'demo-status-review-2',
   'demo-status-review-3',
   'demo-status-review-4',
-] as const
-
-/** Customer-role inbox only: extra `REVIEW` rows (your wallet = customer). */
-export const CUSTOMER_INBOX_REVIEW_IDS = [
   'demo-customer-review-a',
   'demo-customer-review-b',
   'demo-customer-review-c',
@@ -40,8 +36,7 @@ const ALL_RESERVED_DEMO_IDS = new Set<string>([
   DEMO_COMPLETED_DISPUTE_CONTRACT_ID,
   DEMO_COMPLETED_DISPUTE_CUSTOMER_CONTRACT_ID,
   ...Object.values(DEMO_STATUS_IDS),
-  ...EXTRA_REVIEW_GALLERY_IDS,
-  ...CUSTOMER_INBOX_REVIEW_IDS,
+  ...LEGACY_REMOVED_GALLERY_IDS,
 ])
 
 /** Used so performer seed does not treat demo-only rows as “user already has contracts”. */
@@ -161,7 +156,8 @@ export function buildStatusGalleryContracts(
       id: DEMO_STATUS_IDS[status],
       templateKey: template.key,
       number,
-      title: `${template.title} (${status.replace(/_/g, ' ')})`,
+      // Status is shown by StatusBadge; keep title stable and readable.
+      title: template.title,
       customer,
       performer,
       subject,
@@ -220,183 +216,6 @@ export function buildStatusGalleryContracts(
       signatures: { customer: sigCustomer, performer: sigPerformer },
     }),
   ]
-}
-
-/**
- * Additional contracts all in `REVIEW` — same parties as the main gallery, distinct ids/numbers.
- */
-export function buildExtraReviewGalleryContracts(
-  walletAddress: string,
-  role: 'customer' | 'performer',
-): Contract[] {
-  const template = findTemplate('landing-development')
-  if (!template) {
-    throw new Error('Template not found: landing-development')
-  }
-
-  const { customer, performer } = galleryParties(walletAddress, role)
-  const subject = template.defaultSubject
-  const technicalAssignment = template.defaultTechnicalAssignment
-  const disputeResolutionDays = 7
-  const now = Date.now()
-  const day = 24 * 60 * 60 * 1000
-
-  const baseDates = {
-    startDate: new Date(now - 20 * day).toISOString(),
-    endDate: new Date(now + 14 * day).toISOString(),
-  }
-
-  const mkText = (number: string) =>
-    renderContractText({
-      template,
-      customer,
-      performer,
-      subject,
-      technicalAssignment,
-      amount: template.defaultAmount,
-      currency: template.defaultCurrencyCode,
-      jurisdictionCode: template.defaultJurisdictionCode,
-      startDate: baseDates.startDate,
-      endDate: baseDates.endDate,
-      contractNumber: number,
-      disputeResolutionDays,
-    })
-
-  const sigCustomer = {
-    walletAddress: customer.walletAddress!,
-    signature: 'demo-gallery-customer-sig',
-    signedAt: new Date(now - 15 * day).toISOString(),
-  }
-  const sigPerformer = {
-    walletAddress: performer.walletAddress!,
-    signature: 'demo-gallery-performer-sig',
-    signedAt: new Date(now - 14 * day).toISOString(),
-  }
-
-  const year = new Date().getFullYear()
-  const numSuffixes = ['9121', '9122', '9123']
-
-  return EXTRA_REVIEW_GALLERY_IDS.map((id, i) => {
-    const number = `№ ${year}-${numSuffixes[i]}`
-    const createdAt = new Date(now - (18 + i) * day).toISOString()
-    const updatedAt = new Date(now - (5 + i) * day).toISOString()
-    return {
-      id,
-      templateKey: template.key,
-      number,
-      title: `${template.title} (In review ${i + 2})`,
-      customer,
-      performer,
-      subject,
-      technicalAssignment,
-      jurisdictionCode: template.defaultJurisdictionCode,
-      currency: template.defaultCurrencyCode,
-      amount: template.defaultAmount,
-      startDate: baseDates.startDate,
-      endDate: baseDates.endDate,
-      text: mkText(number),
-      signatures: { customer: sigCustomer, performer: sigPerformer },
-      status: 'REVIEW',
-      disputeResolutionDays,
-      createdBy: customer.walletAddress!,
-      createdAt,
-      updatedAt,
-    }
-  })
-}
-
-/**
- * Additional `REVIEW` contracts seeded **only for role customer** — wallet on the customer side,
- * distinct template/titles so the customer inbox is easy to scan.
- */
-export function buildCustomerInboxReviewDemos(walletAddress: string): Contract[] {
-  const template = findTemplate('logo-design')
-  if (!template) {
-    throw new Error('Template not found: logo-design')
-  }
-
-  const customer = {
-    fullName: 'You (customer inbox)',
-    email: 'customer-inbox@split.demo',
-    companyName: 'Your Studio',
-    walletAddress,
-  }
-
-  const performer = {
-    fullName: 'Gallery Performer',
-    email: 'gallery.performer@split.demo',
-    companyName: 'Contractor LLC',
-    walletAddress: GALLERY_FIXED_PERFORMER_WALLET,
-  }
-
-  const subject = template.defaultSubject
-  const technicalAssignment = template.defaultTechnicalAssignment
-  const disputeResolutionDays = 7
-  const now = Date.now()
-  const day = 24 * 60 * 60 * 1000
-
-  const baseDates = {
-    startDate: new Date(now - 25 * day).toISOString(),
-    endDate: new Date(now + 12 * day).toISOString(),
-  }
-
-  const mkText = (number: string) =>
-    renderContractText({
-      template,
-      customer,
-      performer,
-      subject,
-      technicalAssignment,
-      amount: template.defaultAmount,
-      currency: template.defaultCurrencyCode,
-      jurisdictionCode: template.defaultJurisdictionCode,
-      startDate: baseDates.startDate,
-      endDate: baseDates.endDate,
-      contractNumber: number,
-      disputeResolutionDays,
-    })
-
-  const sigCustomer = {
-    walletAddress,
-    signature: 'demo-customer-inbox-sig',
-    signedAt: new Date(now - 16 * day).toISOString(),
-  }
-  const sigPerformer = {
-    walletAddress: performer.walletAddress,
-    signature: 'demo-performer-inbox-sig',
-    signedAt: new Date(now - 14 * day).toISOString(),
-  }
-
-  const year = new Date().getFullYear()
-  const labels = ['Alpha', 'Beta', 'Gamma']
-
-  return CUSTOMER_INBOX_REVIEW_IDS.map((id, i) => {
-    const number = `№ ${year}-${9201 + i}`
-    const createdAt = new Date(now - (20 + i) * day).toISOString()
-    const updatedAt = new Date(now - (6 + i) * day).toISOString()
-    return {
-      id,
-      templateKey: template.key,
-      number,
-      title: `${template.shortTitle} · Review (${labels[i]})`,
-      customer,
-      performer,
-      subject,
-      technicalAssignment,
-      jurisdictionCode: template.defaultJurisdictionCode,
-      currency: template.defaultCurrencyCode,
-      amount: template.defaultAmount,
-      startDate: baseDates.startDate,
-      endDate: baseDates.endDate,
-      text: mkText(number),
-      signatures: { customer: sigCustomer, performer: sigPerformer },
-      status: 'REVIEW' as const,
-      disputeResolutionDays,
-      createdBy: walletAddress,
-      createdAt,
-      updatedAt,
-    }
-  })
 }
 
 /**

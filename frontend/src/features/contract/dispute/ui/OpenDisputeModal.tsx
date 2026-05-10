@@ -26,9 +26,9 @@ export const OpenDisputeModal: FC<OpenDisputeModalProps> = ({
         <div className="flex flex-col gap-1 text-center">
           <h2 className="text-h2 text-(--color-text-primary)">Open a dispute?</h2>
           <p className="text-body text-(--color-text-secondary)">
-            This marks <strong>{contractTitle}</strong> as disputed (local demo). It is separate
-            from accepting work — use this if you do not accept the deliverables. On-chain actions
-            are out of scope for this MVP.
+            This marks <strong>{contractTitle}</strong> as disputed. It is separate from accepting
+            work — use this if you do not accept the deliverables. Both parties will be able to
+            exchange written positions and supporting files within the agreed calendar window.
           </p>
         </div>
 

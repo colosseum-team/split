@@ -5,13 +5,13 @@ import { findTemplate, renderContractText } from './templates'
 import {
   buildCompletedDisputeDemoContract,
   buildCompletedDisputeDemoContractForCustomer,
-  buildCustomerInboxReviewDemos,
-  buildExtraReviewGalleryContracts,
   buildPerformerSeedContract,
   buildStatusGalleryContracts,
   DEMO_COMPLETED_DISPUTE_CONTRACT_ID,
   DEMO_COMPLETED_DISPUTE_CUSTOMER_CONTRACT_ID,
+  DEMO_STATUS_IDS,
   isDemoContractId,
+  LEGACY_REMOVED_GALLERY_IDS,
 } from './mocks'
 import type { UserRole } from '@/entities/user'
 import { addDisputeCalendarDays } from '../lib/disputeDates'
@@ -22,8 +22,12 @@ import type {
   CreateContractInput,
   DisputeAttachment,
 } from './types'
-import type { BackendContractDto } from '@/shared/api/client'
-import { patchFromBackendDto } from './statusMap'
+import type {
+  BackendContractDto,
+  BackendDisputeAttachmentDto,
+  BackendDisputeMessageDto,
+} from '@/shared/api/client'
+import { patchFromBackendDto, stubContractFromBackendDto } from './statusMap'
 
 const computeContractStatus = (contract: Contract): ContractStatus => {
   const hasCustomer = !!contract.signatures.customer
@@ -68,6 +72,33 @@ interface ContractsState {
    * or on-mount refetch.
    */
   applyBackendContract: (localId: string, dto: BackendContractDto) => void
+  /**
+   * Same as `applyBackendContract`, but resolves the local row by
+   * `backendId === dto.id`. Useful after `GET /contracts` / `GET /contracts/:id`
+   * when the caller has only the backend id at hand.
+   */
+  applyBackendContractByBackendId: (dto: BackendContractDto) => void
+  /**
+   * Merge a server-side contract list into the local store:
+   *  - rows already linked to a `backendId` are patched in place;
+   *  - new rows are inserted via `stubContractFromBackendDto`;
+   *  - demo rows (stable `demo-*` ids) are kept untouched — they have no
+   *    `backendId` so the merge never touches them.
+   * Local-only rows that have no `backendId` (e.g. drafts created before
+   * `POST /contracts` resolved) are also preserved.
+   */
+  hydrateFromBackend: (dtos: BackendContractDto[]) => void
+  /**
+   * Replaces the in-memory dispute thread (messages + attachments) with the
+   * normalized server view. Maps `authorWallet` to the SPA's
+   * `customer | performer` side using the contract's customer/performer
+   * wallet addresses.
+   */
+  setDisputeThread: (localId: string, payload: { messages: BackendDisputeMessageDto[] }) => void
+  /** Append a single dispute message returned by the backend. */
+  appendBackendDisputeMessage: (localId: string, message: BackendDisputeMessageDto) => void
+  /** Append a single attachment returned by the backend (without a message yet). */
+  appendBackendDisputeAttachment: (localId: string, attachment: BackendDisputeAttachmentDto) => void
   getById: (id: string) => Contract | undefined
   signByWallet: (id: string, signature: ContractSignature, side: 'customer' | 'performer') => void
   /**
@@ -168,6 +199,149 @@ export const useContractsStore = create<ContractsState>()(
               if (c.id !== localId) return c
               const patch = patchFromBackendDto(dto, c)
               return { ...c, ...patch, updatedAt: new Date().toISOString() }
+            }),
+          }))
+        },
+
+        applyBackendContractByBackendId: (dto) => {
+          set((state) => ({
+            contracts: state.contracts.map((c) => {
+              if (c.backendId !== dto.id) return c
+              const patch = patchFromBackendDto(dto, c)
+              return { ...c, ...patch, updatedAt: new Date().toISOString() }
+            }),
+          }))
+        },
+
+        hydrateFromBackend: (dtos) => {
+          set((state) => {
+            const byBackendId = new Map<string, Contract>()
+            for (const c of state.contracts) {
+              if (c.backendId) byBackendId.set(c.backendId, c)
+            }
+
+            const seenBackendIds = new Set<string>()
+            const incomingNew: Contract[] = []
+
+            for (const dto of dtos) {
+              seenBackendIds.add(dto.id)
+              if (!byBackendId.has(dto.id)) {
+                incomingNew.push(stubContractFromBackendDto(dto))
+              }
+            }
+
+            const merged = state.contracts.map((c) => {
+              if (!c.backendId) return c
+              const dto = dtos.find((d) => d.id === c.backendId)
+              if (!dto) return c
+              const patch = patchFromBackendDto(dto, c)
+              return { ...c, ...patch }
+            })
+
+            if (incomingNew.length === 0) return { contracts: merged }
+            return { contracts: [...incomingNew, ...merged] }
+          })
+        },
+
+        setDisputeThread: (localId, payload) => {
+          set((state) => ({
+            contracts: state.contracts.map((c) => {
+              if (c.id !== localId) return c
+              const customerWallet = c.customer.walletAddress
+              const serverAttachmentIds = new Set<string>()
+              for (const m of payload.messages) {
+                for (const a of m.attachments ?? []) serverAttachmentIds.add(a.id)
+              }
+              const messages = payload.messages.map((m) => {
+                const msgAttachments = m.attachments ?? []
+                return {
+                  id: m.id,
+                  side: (m.authorWallet === customerWallet ? 'customer' : 'performer') as
+                    | 'customer'
+                    | 'performer',
+                  body: m.body,
+                  createdAt: m.createdAt,
+                  attachments:
+                    msgAttachments.length > 0
+                      ? msgAttachments.map((a) => ({
+                          id: a.id,
+                          fileName: a.fileName,
+                          mimeType: a.mimeType,
+                          sizeBytes: a.size,
+                          addedAt: a.createdAt,
+                        }))
+                      : undefined,
+                }
+              })
+              // Keep only attachments not yet reflected on the server thread (e.g. uploads
+              // queued before the next message is posted).
+              const pendingFlat = (c.disputeAttachments ?? []).filter(
+                (a) => !serverAttachmentIds.has(a.id),
+              )
+              return {
+                ...c,
+                disputeMessages: messages,
+                disputeAttachments: pendingFlat,
+              }
+            }),
+          }))
+        },
+
+        appendBackendDisputeMessage: (localId, message) => {
+          set((state) => ({
+            contracts: state.contracts.map((c) => {
+              if (c.id !== localId) return c
+              const customerWallet = c.customer.walletAddress
+              const side: 'customer' | 'performer' =
+                message.authorWallet === customerWallet ? 'customer' : 'performer'
+              const prev = c.disputeMessages ?? []
+              const prevAttachments = c.disputeAttachments ?? []
+              const msgAttachments = message.attachments.map((a) => ({
+                id: a.id,
+                fileName: a.fileName,
+                mimeType: a.mimeType,
+                sizeBytes: a.size,
+                addedAt: a.createdAt,
+              }))
+              const linkedIds = new Set(msgAttachments.map((a) => a.id))
+              return {
+                ...c,
+                disputeMessages: [
+                  ...prev,
+                  {
+                    id: message.id,
+                    side,
+                    body: message.body,
+                    createdAt: message.createdAt,
+                    attachments: msgAttachments.length ? msgAttachments : undefined,
+                  },
+                ],
+                disputeAttachments: prevAttachments.filter((a) => !linkedIds.has(a.id)),
+                updatedAt: message.createdAt,
+              }
+            }),
+          }))
+        },
+
+        appendBackendDisputeAttachment: (localId, attachment) => {
+          set((state) => ({
+            contracts: state.contracts.map((c) => {
+              if (c.id !== localId) return c
+              const prev = c.disputeAttachments ?? []
+              if (prev.some((a) => a.id === attachment.id)) return c
+              return {
+                ...c,
+                disputeAttachments: [
+                  ...prev,
+                  {
+                    id: attachment.id,
+                    fileName: attachment.fileName,
+                    mimeType: attachment.mimeType,
+                    sizeBytes: attachment.size,
+                    addedAt: attachment.createdAt,
+                  },
+                ],
+              }
             }),
           }))
         },
@@ -313,11 +487,7 @@ export const useContractsStore = create<ContractsState>()(
 
         ensureStatusGalleryDemos: (walletAddress, role) => {
           set((state) => {
-            const gallery = [
-              ...buildStatusGalleryContracts(walletAddress, role),
-              ...buildExtraReviewGalleryContracts(walletAddress, role),
-              ...(role === 'customer' ? buildCustomerInboxReviewDemos(walletAddress) : []),
-            ]
+            const gallery = [...buildStatusGalleryContracts(walletAddress, role)]
             const existing = new Set(state.contracts.map((c) => c.id))
             const toAdd = gallery.filter((c) => !existing.has(c.id))
             if (toAdd.length === 0) return state
@@ -353,7 +523,26 @@ export const useContractsStore = create<ContractsState>()(
       }),
       {
         name: 'split-contracts-store',
-        version: 3,
+        version: 4,
+        migrate: (persistedState, version) => {
+          if (version >= 4) return persistedState
+          const legacyRemoved = new Set<string>(LEGACY_REMOVED_GALLERY_IDS)
+          const statusGalleryIds = new Set<string>(Object.values(DEMO_STATUS_IDS))
+          const slice = persistedState as {
+            contracts?: Contract[]
+            seededPerformerWallets?: string[]
+          }
+          if (!slice.contracts?.length) return persistedState
+
+          const landing = findTemplate('landing-development')
+          const galleryTitle = landing?.title ?? 'Landing page development'
+
+          slice.contracts = slice.contracts
+            .filter((c) => !legacyRemoved.has(c.id))
+            .map((c) => (statusGalleryIds.has(c.id) ? { ...c, title: galleryTitle } : c))
+
+          return persistedState
+        },
       },
     ),
     {
