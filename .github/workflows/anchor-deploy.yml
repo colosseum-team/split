@@ -146,11 +146,16 @@ jobs:
         working-directory: contracts
         run: |
           set -euo pipefail
-          # `anchor build` runs `cargo metadata` against the workspace via
-          # the host cargo, which writes a v4 lockfile that build-sbf's
-          # older bundled cargo can't parse. Skip the wrapper and call
-          # cargo build-sbf directly — same end artefact (target/deploy/
-          # escros_escrow.so) without the host-cargo detour.
+          # PATH-isolation: the host's stable cargo (installed by
+          # dtolnay/rust-toolchain) writes v4 lockfiles that the bundled
+          # Solana cargo can't parse — even cargo-build-sbf seems to
+          # invoke whichever `cargo` is first on PATH for metadata.
+          # Force PATH to contain ONLY Solana's bin + system bins for
+          # this step so rustup's cargo can't leak in.
+          export PATH="$HOME/.local/share/solana/install/active_release/bin:/usr/local/bin:/usr/bin:/bin"
+          echo "PATH=$PATH"
+          which cargo
+          cargo --version
           rm -f Cargo.lock
           cargo build-sbf --manifest-path programs/escrow/Cargo.toml
           ls -la target/deploy/
