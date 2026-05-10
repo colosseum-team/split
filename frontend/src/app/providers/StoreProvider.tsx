@@ -4,8 +4,8 @@ import { useContractsStore } from '@/entities/contract'
 
 /**
  * Bootstraps app-level state:
- * - seeds gallery mocks (statuses + extra REVIEW rows); for customer only, more REVIEW inbox demos.
- * - if the user is a performer, also seeds a partial mock once (inbox not empty).
+ * - seeds one demo row per contract status (stable `demo-status-*` routes)
+ * - if the user is a performer, also seeds a partial mock once (inbox not empty)
  */
 export function StoreProvider({ children }: PropsWithChildren) {
   const role = useUserStore((s) => s.role)

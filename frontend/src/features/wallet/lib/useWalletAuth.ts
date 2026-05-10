@@ -82,6 +82,31 @@ export function useWalletAuth() {
     }
   }, [connected, publicKey, signMessage, authToken, setAuthToken, setRole])
 
+  // Server-truth hydration: on every (wallet, token) pair, refresh `/me`
+  // so a role change made from another device is reflected here. Skipped
+  // when there's no token (the SIWS effect above will run first).
+  useEffect(() => {
+    if (!authToken || !walletAddress) return
+    let cancelled = false
+    void (async () => {
+      try {
+        const me = await api.me(authToken)
+        if (cancelled) return
+        const fe = beRoleToFe(me.role)
+        if (fe) setRole(fe)
+      } catch (err) {
+        if (cancelled) return
+        if (err instanceof ApiError && err.status === 401) {
+          // Token was rejected — drop it so the SIWS round-trip can run again.
+          setAuthToken(null)
+        }
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [authToken, walletAddress, setRole, setAuthToken])
+
   return {
     walletAddress,
     connected,

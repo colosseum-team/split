@@ -1,4 +1,4 @@
-import { type FC, useMemo, useState } from 'react'
+import { type FC, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PlusIcon } from '@heroicons/react/24/outline'
 import { useUserStore } from '@/entities/user'
@@ -7,15 +7,52 @@ import { useWalletAuth } from '@/features/wallet'
 import { Header, Layout } from '@/widgets/layout'
 import { ContractCard, StatusFilterButtons, type StatusFilter } from '@/widgets/contract'
 import { Button, RoleChip } from '@/shared/ui'
+import { ApiError, api, feRoleToBe, type ContractListStatus } from '@/shared/api/client'
+
+function mapFilterToBackendStatus(filter: StatusFilter): ContractListStatus | undefined {
+  if (filter === 'review') return 'review'
+  if (filter === 'disputed') return 'disputed'
+  if (filter === 'completed') return 'completed'
+  if (filter === 'declined') return 'cancelled'
+  if (filter === 'signed') return 'funded'
+  return undefined
+}
 
 export const HomePage: FC = () => {
   const navigate = useNavigate()
   const role = useUserStore((s) => s.role)
   const walletAddress = useUserStore((s) => s.walletAddress)
+  const authToken = useUserStore((s) => s.authToken)
   const contracts = useContractsStore((s) => s.contracts)
+  const hydrateFromBackend = useContractsStore((s) => s.hydrateFromBackend)
   const { disconnect } = useWalletAuth()
 
   const [filter, setFilter] = useState<StatusFilter>('all')
+  const [listError, setListError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!authToken || !role) return
+    let cancelled = false
+    void (async () => {
+      try {
+        const dtos = await api.contracts.list(authToken, {
+          role: feRoleToBe(role),
+          status: mapFilterToBackendStatus(filter),
+        })
+        if (cancelled) return
+        hydrateFromBackend(dtos)
+        setListError(null)
+      } catch (err) {
+        if (cancelled) return
+        const msg =
+          err instanceof ApiError ? `${err.code}: ${err.message}` : 'Could not load contracts'
+        setListError(msg)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [authToken, role, filter, hydrateFromBackend])
 
   const myContracts = useMemo(() => {
     if (role === 'performer') {
@@ -77,6 +114,15 @@ export const HomePage: FC = () => {
       <div className="mb-4">
         <StatusFilterButtons selected={filter} onChange={setFilter} />
       </div>
+
+      {listError && (
+        <div
+          className="mb-4 rounded-[var(--radius-md)] border border-(--color-state-danger)/40 bg-(--color-state-danger-soft) px-3 py-2 text-[13px] text-(--color-state-danger)"
+          role="alert"
+        >
+          {listError}
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto custom-scrollbar pb-24">
         {filtered.length > 0 ? (

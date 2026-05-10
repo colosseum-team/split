@@ -18,23 +18,44 @@ const ALLOWED_MIME = new Set([
   'image/gif',
 ])
 
+type AttachmentInfo = { fileName: string; mimeType: string; sizeBytes: number; id?: string }
+
 type DisputeWorkspaceProps = {
   contract: Contract
   viewerSide: 'customer' | 'performer' | null
-  onSaveComment: (body: string) => void
-  onAddAttachments: (
-    files: Array<{ fileName: string; mimeType: string; sizeBytes: number }>,
-  ) => void
+  onSaveComment: (body: string, attachmentIds?: string[]) => void | Promise<void>
+  /** Upload a single file. Implementations should return the persisted
+   * attachment id when the upload was server-backed (so it can be linked
+   * to the next message); local-only flows can return `null`. */
+  onUploadAttachment?: (file: File) => Promise<{ id: string } | null>
+  /**
+   * @deprecated kept for the legacy local-only flow. New callers pass
+   * `onUploadAttachment` instead so the component can coordinate the
+   * upload-then-post-message order required by the backend.
+   */
+  onAddAttachments?: (files: AttachmentInfo[]) => void
+  onOpenAttachment?: (attachmentId: string, mimeType: string) => void | Promise<void>
+  isPosting?: boolean
+  isUploading?: boolean
+  postError?: string | null
+  uploadError?: string | null
 }
 
 export const DisputeWorkspace: FC<DisputeWorkspaceProps> = ({
   contract,
   viewerSide,
   onSaveComment,
+  onUploadAttachment,
   onAddAttachments,
+  onOpenAttachment,
+  isPosting = false,
+  isUploading = false,
+  postError,
+  uploadError,
 }) => {
   const [draft, setDraft] = useState('')
   const [fileHint, setFileHint] = useState('')
+  const [pendingAttachmentIds, setPendingAttachmentIds] = useState<string[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
 
   const openedIso =
@@ -55,33 +76,53 @@ export const DisputeWorkspace: FC<DisputeWorkspaceProps> = ({
   const messages = contract.disputeMessages ?? []
   const attachments = contract.disputeAttachments ?? []
 
-  const handleFiles = (list: FileList | null) => {
+  const validateFile = (f: File): string | null => {
+    if (f.size > MAX_BYTES) return `“${f.name}” exceeds 5 MB.`
+    const mime = f.type || 'application/octet-stream'
+    if (!ALLOWED_MIME.has(mime)) return `“${f.name}”: use PDF or common images only.`
+    return null
+  }
+
+  const handleFiles = async (list: FileList | null) => {
     setFileHint('')
     if (!list?.length || !canCompose) return
-    const accepted: Array<{ fileName: string; mimeType: string; sizeBytes: number }> = []
-    for (let i = 0; i < list.length; i++) {
-      const f = list[i]
-      if (f.size > MAX_BYTES) {
-        setFileHint(`“${f.name}” exceeds 5 MB.`)
+    const files = Array.from(list)
+    for (const f of files) {
+      const reason = validateFile(f)
+      if (reason) {
+        setFileHint(reason)
+        if (inputRef.current) inputRef.current.value = ''
         return
       }
-      const mime = f.type || 'application/octet-stream'
-      if (!ALLOWED_MIME.has(mime)) {
-        setFileHint(`“${f.name}”: use PDF or common images only.`)
-        return
-      }
-      accepted.push({ fileName: f.name, mimeType: mime, sizeBytes: f.size })
     }
-    if (accepted.length) onAddAttachments(accepted)
+
+    if (onUploadAttachment) {
+      const ids: string[] = []
+      for (const f of files) {
+        const result = await onUploadAttachment(f)
+        if (result) ids.push(result.id)
+      }
+      if (ids.length) setPendingAttachmentIds((prev) => [...prev, ...ids])
+    } else if (onAddAttachments) {
+      onAddAttachments(
+        files.map((f) => ({
+          fileName: f.name,
+          mimeType: f.type || 'application/octet-stream',
+          sizeBytes: f.size,
+        })),
+      )
+    }
+
     if (inputRef.current) inputRef.current.value = ''
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!canCompose) return
     const t = draft.trim()
     if (!t) return
-    onSaveComment(t)
+    await onSaveComment(t, pendingAttachmentIds.length ? pendingAttachmentIds : undefined)
     setDraft('')
+    setPendingAttachmentIds([])
   }
 
   const fmtKb = (n: number) => (n < 1024 ? `${n} B` : `${(n / 1024).toFixed(1)} KB`)
@@ -91,7 +132,7 @@ export const DisputeWorkspace: FC<DisputeWorkspaceProps> = ({
       <div className="flex flex-col gap-1">
         <h2 className="text-h2 text-(--color-text-primary)">Dispute</h2>
         <p className="text-body text-(--color-text-secondary)">
-          Opened from the customer side. Parties should exchange materials within the agreed
+          Both parties exchange written positions and supporting materials within the agreed
           calendar window ({contract.disputeResolutionDays ?? 7} days).
         </p>
       </div>
@@ -145,10 +186,9 @@ export const DisputeWorkspace: FC<DisputeWorkspaceProps> = ({
           Disclaimer
         </p>
         <p className="mt-2">
-          Submissions here are for documenting each party&apos;s position in this demo. They do not
-          constitute legal advice. The platform does not adjudicate disputes in this MVP —
-          resolution follows your agreement and any future arbitration process. Do not upload
-          confidential data you are not permitted to share.
+          Submissions here document each party&apos;s position in the exchange window. They do not
+          constitute legal advice. Resolution follows your agreement and the platform arbitration
+          policy. Do not upload confidential data you are not permitted to share.
         </p>
       </aside>
 
@@ -172,6 +212,39 @@ export const DisputeWorkspace: FC<DisputeWorkspaceProps> = ({
                 <p className="whitespace-pre-wrap text-body text-(--color-text-primary)">
                   {m.body}
                 </p>
+                {m.attachments && m.attachments.length > 0 ? (
+                  <ul className="mt-3 flex flex-col gap-1.5 border-t border-(--color-border-subtle) pt-3">
+                    {m.attachments.map((a) => (
+                      <li
+                        key={a.id}
+                        className="flex items-center justify-between gap-3 text-[13px] text-(--color-text-secondary)"
+                      >
+                        <span className="flex min-w-0 items-center gap-2">
+                          <PaperClipIcon
+                            className="h-4 w-4 shrink-0 text-(--color-text-muted)"
+                            aria-hidden
+                          />
+                          {onOpenAttachment ? (
+                            <button
+                              type="button"
+                              onClick={() => onOpenAttachment(a.id, a.mimeType)}
+                              className="truncate font-medium text-(--color-brand) underline-offset-2 hover:underline"
+                            >
+                              {a.fileName}
+                            </button>
+                          ) : (
+                            <span className="truncate font-medium text-(--color-text-primary)">
+                              {a.fileName}
+                            </span>
+                          )}
+                        </span>
+                        <span className="shrink-0 text-(--color-text-muted)">
+                          {fmtKb(a.sizeBytes)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
               </li>
             ))}
           </ul>
@@ -179,28 +252,49 @@ export const DisputeWorkspace: FC<DisputeWorkspaceProps> = ({
       ) : null}
 
       <div className="space-y-3">
-        <h3 className="text-[15px] font-bold text-(--color-text-primary)">Attachments</h3>
+        <div className="flex flex-col gap-1">
+          <h3 className="text-[15px] font-bold text-(--color-text-primary)">Attachments</h3>
+          {messages.some((m) => m.attachments?.length) ? (
+            <p className="text-caption text-(--color-text-muted)">
+              Files sent with a message are shown under that message above. Listed here are uploads
+              not yet tied to a posted comment (or local-only attachments).
+            </p>
+          ) : null}
+        </div>
         {attachments.length === 0 ? (
           <p className="text-body text-(--color-text-muted)">No files yet.</p>
         ) : (
           <ul className="flex flex-col gap-2">
-            {attachments.map((a) => (
-              <li
-                key={a.id}
-                className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-(--color-border-subtle) bg-(--color-surface-raised) px-3 py-2 text-[13px]"
-              >
-                <span className="flex min-w-0 items-center gap-2">
-                  <PaperClipIcon
-                    className="h-4 w-4 shrink-0 text-(--color-text-muted)"
-                    aria-hidden
-                  />
-                  <span className="truncate font-medium text-(--color-text-primary)">
-                    {a.fileName}
+            {attachments.map((a) => {
+              const canOpen = !!onOpenAttachment
+              return (
+                <li
+                  key={a.id}
+                  className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-(--color-border-subtle) bg-(--color-surface-raised) px-3 py-2 text-[13px]"
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <PaperClipIcon
+                      className="h-4 w-4 shrink-0 text-(--color-text-muted)"
+                      aria-hidden
+                    />
+                    {canOpen ? (
+                      <button
+                        type="button"
+                        onClick={() => onOpenAttachment?.(a.id, a.mimeType)}
+                        className="truncate font-medium text-(--color-brand) underline-offset-2 hover:underline"
+                      >
+                        {a.fileName}
+                      </button>
+                    ) : (
+                      <span className="truncate font-medium text-(--color-text-primary)">
+                        {a.fileName}
+                      </span>
+                    )}
                   </span>
-                </span>
-                <span className="shrink-0 text-(--color-text-muted)">{fmtKb(a.sizeBytes)}</span>
-              </li>
-            ))}
+                  <span className="shrink-0 text-(--color-text-muted)">{fmtKb(a.sizeBytes)}</span>
+                </li>
+              )
+            })}
           </ul>
         )}
         <input
@@ -209,23 +303,33 @@ export const DisputeWorkspace: FC<DisputeWorkspaceProps> = ({
           multiple
           accept=".pdf,image/png,image/jpeg,image/webp,image/gif"
           className="hidden"
-          onChange={(e) => handleFiles(e.target.files)}
+          onChange={(e) => {
+            void handleFiles(e.target.files)
+          }}
         />
         <Button
           type="button"
           variant="secondary"
           size="md"
-          disabled={!canCompose}
+          disabled={!canCompose || isUploading}
           onClick={() => inputRef.current?.click()}
           className="inline-flex w-fit items-center gap-2"
         >
           <DocumentArrowUpIcon className="h-5 w-5" aria-hidden />
-          Add files
+          {isUploading ? 'Uploading…' : 'Add files'}
         </Button>
         {fileHint ? <p className="text-[13px] text-(--color-state-danger)">{fileHint}</p> : null}
+        {uploadError ? (
+          <p className="text-[13px] text-(--color-state-danger)">{uploadError}</p>
+        ) : null}
+        {pendingAttachmentIds.length > 0 ? (
+          <p className="text-[13px] text-(--color-text-muted)">
+            {pendingAttachmentIds.length} file(s) ready — they will be attached to the next comment.
+          </p>
+        ) : null}
         {!canCompose && viewerSide && windowExpired ? (
           <p className="text-[13px] text-(--color-text-muted)">
-            The exchange window has ended (demo). New uploads and comments are disabled.
+            The exchange window has ended. New uploads and comments are disabled.
           </p>
         ) : null}
       </div>
@@ -241,7 +345,7 @@ export const DisputeWorkspace: FC<DisputeWorkspaceProps> = ({
           id="dispute-comment"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          disabled={!canCompose}
+          disabled={!canCompose || isPosting}
           placeholder={
             viewerSide
               ? 'Describe your position or response…'
@@ -250,15 +354,18 @@ export const DisputeWorkspace: FC<DisputeWorkspaceProps> = ({
           rows={5}
           className="w-full rounded-[var(--radius-md)] border border-(--color-border-subtle) bg-(--color-surface-base) px-3 py-2 text-[14px] text-(--color-text-primary) placeholder:text-(--color-text-muted) disabled:opacity-60"
         />
+        {postError ? <p className="text-[13px] text-(--color-state-danger)">{postError}</p> : null}
         <Button
           type="button"
           variant="primary"
           size="md"
-          disabled={!canCompose || !draft.trim()}
-          onClick={handleSave}
+          disabled={!canCompose || !draft.trim() || isPosting}
+          onClick={() => {
+            void handleSave()
+          }}
           className="w-full sm:w-auto"
         >
-          Save
+          {isPosting ? 'Saving…' : 'Save'}
         </Button>
       </div>
     </section>

@@ -7,11 +7,11 @@ import { ContractSummary } from '@/widgets/contract'
 import { EscrowChainPanel } from '@/widgets/contract/EscrowChainPanel'
 import { SignContractModal } from '@/features/contract/sign'
 import { ConfirmCompletionModal, useApproveContract } from '@/features/contract/complete'
-import { OpenDisputeModal } from '@/features/contract/dispute'
+import { OpenDisputeModal, useOpenDispute } from '@/features/contract/dispute'
 import { FundContractModal, useFundContract } from '@/features/contract/fund'
 import { SubmitWorkModal, useSubmitWork } from '@/features/contract/submit'
 import { useAcceptContract } from '@/features/contract/accept'
-import { DisputeWorkspace } from '@/features/disputes'
+import { DisputeWorkspace, openDisputeAttachment, useDisputeThread } from '@/features/disputes'
 import { api } from '@/shared/api/client'
 import { AuroraBackdrop, Button, ResultModal } from '@/shared/ui'
 
@@ -22,7 +22,6 @@ export const ContractViewPage: FC = () => {
   const contract = useContractsStore((s) => (id ? s.contracts.find((c) => c.id === id) : undefined))
   const signByWallet = useContractsStore((s) => s.signByWallet)
   const markCompleted = useContractsStore((s) => s.markCompleted)
-  const openDisputeStore = useContractsStore((s) => s.openDispute)
   const appendDisputeMessage = useContractsStore((s) => s.appendDisputeMessage)
   const appendDisputeAttachment = useContractsStore((s) => s.appendDisputeAttachment)
   const claimPerformerWallet = useContractsStore((s) => s.claimPerformerWallet)
@@ -43,7 +42,6 @@ export const ContractViewPage: FC = () => {
   }>(null)
   const [isCompleting, setIsCompleting] = useState(false)
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false)
-  const [isDisputeSubmitting, setIsDisputeSubmitting] = useState(false)
   const [isAccepting, setIsAccepting] = useState(false)
 
   const side = useMemo<'customer' | 'performer' | null>(() => {
@@ -128,6 +126,23 @@ export const ContractViewPage: FC = () => {
       })
     },
   })
+  const openDisputeHook = useOpenDispute(contract ?? null, {
+    onSuccess: () => {
+      setIsDisputeModalOpen(false)
+      setResultOpen({
+        type: 'success',
+        header: 'Dispute opened',
+        text: 'This contract is now disputed. Use the workspace below to add comments and files within the calendar window.',
+      })
+    },
+    onError: (msg) =>
+      setResultOpen({
+        type: 'error',
+        header: 'Could not open dispute',
+        text: msg,
+      }),
+  })
+  const disputeThread = useDisputeThread(contract ?? null)
 
   if (!contract) {
     return (
@@ -262,24 +277,7 @@ export const ContractViewPage: FC = () => {
   }
 
   const handleOpenDisputeConfirmed = () => {
-    setIsDisputeSubmitting(true)
-    try {
-      openDisputeStore(contract.id)
-      setIsDisputeModalOpen(false)
-      setResultOpen({
-        type: 'success',
-        header: 'Dispute opened',
-        text: 'This contract is now disputed (local demo). Use the dispute section below to add comments and files.',
-      })
-    } catch {
-      setResultOpen({
-        type: 'error',
-        header: 'Something went wrong',
-        text: 'Could not open dispute. Please try again.',
-      })
-    } finally {
-      setIsDisputeSubmitting(false)
-    }
+    void openDisputeHook.run()
   }
 
   return (
@@ -343,8 +341,9 @@ export const ContractViewPage: FC = () => {
             </p>
             <p className="mt-1 text-body leading-relaxed text-emerald-950/95">
               If deliverables match the agreement, use <strong>Confirm work completion</strong>{' '}
-              below. If you do not accept them, use <strong>Open dispute</strong> — it only marks
-              the contract disputed here (demo); it is not inside the acceptance modal.
+              below. If you do not accept them, use <strong>Open dispute</strong> — it marks the
+              contract as disputed and opens the exchange window; it is not inside the acceptance
+              modal.
             </p>
           </aside>
         )}
@@ -359,7 +358,7 @@ export const ContractViewPage: FC = () => {
             </p>
             <p className="mt-1 text-body leading-relaxed text-rose-950/95">
               This contract is <strong>Disputed</strong>. Use the workspace below within the
-              calendar window. On-chain steps are out of scope for this MVP.
+              calendar window to exchange written positions and supporting files.
             </p>
           </aside>
         )}
@@ -445,19 +444,51 @@ export const ContractViewPage: FC = () => {
 
         <EscrowChainPanel contract={contract} />
 
-        {contract.status === 'DISPUTED' && (
-          <DisputeWorkspace
-            contract={contract}
-            viewerSide={side}
-            onSaveComment={(body) => {
-              if (!side) return
-              appendDisputeMessage(contract.id, side, body)
-            }}
-            onAddAttachments={(files) => {
-              files.forEach((f) => appendDisputeAttachment(contract.id, f))
-            }}
-          />
-        )}
+        {contract.status === 'DISPUTED' &&
+          (contract.backendId && authToken ? (
+            <DisputeWorkspace
+              contract={contract}
+              viewerSide={side}
+              isPosting={disputeThread.isPosting}
+              postError={disputeThread.postError}
+              isUploading={disputeThread.isUploading}
+              uploadError={disputeThread.uploadError}
+              onSaveComment={async (body, attachmentIds) => {
+                await disputeThread.postMessage(body, attachmentIds)
+              }}
+              onUploadAttachment={async (file) => {
+                const dto = await disputeThread.uploadAttachment(file)
+                return dto ? { id: dto.id } : null
+              }}
+              onOpenAttachment={async (attachmentId, mimeType) => {
+                if (!authToken || !contract.backendId) return
+                try {
+                  await openDisputeAttachment(authToken, contract.backendId, {
+                    id: attachmentId,
+                    mimeType,
+                  })
+                } catch {
+                  setResultOpen({
+                    type: 'error',
+                    header: 'Could not open attachment',
+                    text: 'The file could not be downloaded. Try again in a moment.',
+                  })
+                }
+              }}
+            />
+          ) : (
+            <DisputeWorkspace
+              contract={contract}
+              viewerSide={side}
+              onSaveComment={(body) => {
+                if (!side) return
+                appendDisputeMessage(contract.id, side, body)
+              }}
+              onAddAttachments={(files) => {
+                files.forEach((f) => appendDisputeAttachment(contract.id, f))
+              }}
+            />
+          ))}
       </main>
 
       <SignContractModal
@@ -508,7 +539,7 @@ export const ContractViewPage: FC = () => {
         onClose={() => setIsDisputeModalOpen(false)}
         onConfirm={handleOpenDisputeConfirmed}
         contractTitle={contract.title}
-        isSubmitting={isDisputeSubmitting}
+        isSubmitting={openDisputeHook.isPending}
       />
 
       <ResultModal

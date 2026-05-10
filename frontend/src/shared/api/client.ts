@@ -41,13 +41,40 @@ interface RequestOpts {
   signal?: AbortSignal
 }
 
-async function request<T>(path: string, opts: RequestOpts = {}): Promise<T> {
-  const { method = 'GET', body, token, signal } = opts
+function buildUrl(path: string, query?: Record<string, string | undefined>): string {
+  const base = `${API_BASE}${path}`
+  if (!query) return base
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== null && value !== '') params.set(key, value)
+  }
+  const qs = params.toString()
+  return qs ? `${base}?${qs}` : base
+}
+
+async function parseError(res: Response, parsed: unknown): Promise<never> {
+  const obj = (typeof parsed === 'object' && parsed !== null ? parsed : {}) as Record<
+    string,
+    unknown
+  >
+  throw new ApiError(
+    res.status,
+    typeof obj.code === 'string' ? obj.code : 'HTTP_ERROR',
+    typeof obj.message === 'string' ? obj.message : `HTTP ${res.status}`,
+    parsed,
+  )
+}
+
+async function request<T>(
+  path: string,
+  opts: RequestOpts & { query?: Record<string, string | undefined> } = {},
+): Promise<T> {
+  const { method = 'GET', body, token, signal, query } = opts
   const headers: Record<string, string> = {}
   if (body !== undefined) headers['content-type'] = 'application/json'
   if (token) headers['authorization'] = `Bearer ${token}`
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(buildUrl(path, query), {
     method,
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
@@ -62,19 +89,29 @@ async function request<T>(path: string, opts: RequestOpts = {}): Promise<T> {
     parsed = text
   }
 
-  if (!res.ok) {
-    const obj = (typeof parsed === 'object' && parsed !== null ? parsed : {}) as Record<
-      string,
-      unknown
-    >
-    throw new ApiError(
-      res.status,
-      typeof obj.code === 'string' ? obj.code : 'HTTP_ERROR',
-      typeof obj.message === 'string' ? obj.message : `HTTP ${res.status}`,
-      parsed,
-    )
-  }
+  if (!res.ok) await parseError(res, parsed)
   return parsed as T
+}
+
+async function requestBlob(
+  path: string,
+  opts: { token?: string | null; signal?: AbortSignal } = {},
+): Promise<Blob> {
+  const { token, signal } = opts
+  const headers: Record<string, string> = {}
+  if (token) headers['authorization'] = `Bearer ${token}`
+
+  const res = await fetch(`${API_BASE}${path}`, { method: 'GET', headers, signal })
+  if (!res.ok) {
+    let parsed: unknown
+    try {
+      parsed = await res.json()
+    } catch {
+      parsed = null
+    }
+    await parseError(res, parsed)
+  }
+  return res.blob()
 }
 
 // ---------- types from backend ----------
@@ -171,6 +208,65 @@ export interface BackendContractDto {
   updatedAt: string
 }
 
+// Server-side `serializeDisputeAttachment` shape — note that the server uses
+// `size` (bytes) where the SPA's local `DisputeAttachment` carries `sizeBytes`.
+export interface BackendDisputeAttachmentDto {
+  id: string
+  fileName: string
+  mimeType: string
+  size: number
+  createdAt: string
+}
+
+// Server-side `serializeDisputeMessage` shape: messages are keyed by wallet,
+// not the SPA's `customer | performer` side. Callers map `authorWallet` to a
+// side using the contract's customer/assignee addresses.
+export interface BackendDisputeMessageDto {
+  id: string
+  authorWallet: string
+  body: string
+  createdAt: string
+  attachments: BackendDisputeAttachmentDto[]
+}
+
+export interface BackendDisputeBundleDto {
+  contract: BackendContractDto
+  messages: BackendDisputeMessageDto[]
+}
+
+export type DisputeOutcome = 'PERFORMER_WON' | 'CLIENT_WON' | 'INCONCLUSIVE'
+
+export interface ResolveDisputeResponse extends BackendContractDto {
+  onchain: {
+    executed: boolean
+    txSignature: string | null
+    reason: string | null
+  }
+}
+
+// Filter values for `GET /contracts`. `available` and `mine` are performer-
+// only convenience queries (`available` → `status=open` + no assignee).
+export type ContractListStatus = BackendContractStatus | 'available' | 'mine'
+
+export interface ContractListQuery {
+  role?: BeRole
+  status?: ContractListStatus
+}
+
+export interface PatchContractRequest {
+  title?: string
+  description?: string
+  amount?: string | number
+  currency?: string
+  deadline?: string
+  assigneeAddress?: string
+  disputeResolutionDays?: number
+}
+
+export interface OpenDisputeRequest {
+  reason?: string
+}
+
 // ---------- endpoints ----------
 
 export const api = {
@@ -209,8 +305,21 @@ export const api = {
     create: (token: string, body: CreateContractRequest) =>
       request<CreateContractResponse>('/contracts', { method: 'POST', body, token }),
 
+    list: (token: string, query?: ContractListQuery) =>
+      request<BackendContractDto[]>('/contracts', {
+        token,
+        query: { role: query?.role, status: query?.status },
+      }),
+
     get: (token: string, contractId: string) =>
       request<BackendContractDto>(`/contracts/${contractId}`, { token }),
+
+    patch: (token: string, contractId: string, body: PatchContractRequest) =>
+      request<BackendContractDto>(`/contracts/${contractId}`, {
+        method: 'PATCH',
+        body: { ...body, amount: body.amount !== undefined ? String(body.amount) : undefined },
+        token,
+      }),
 
     buildFundTx: (token: string, contractId: string) =>
       request<{ tx: string; escrowAddress: string }>(`/contracts/${contractId}/fund-tx`, {
@@ -251,6 +360,52 @@ export const api = {
       request<BackendContractDto>(`/contracts/${contractId}/submit`, {
         method: 'POST',
         body: { payload },
+        token,
+      }),
+
+    openDispute: (token: string, contractId: string, body: OpenDisputeRequest = {}) =>
+      request<BackendContractDto>(`/contracts/${contractId}/dispute`, {
+        method: 'POST',
+        body,
+        token,
+      }),
+
+    resolveDispute: (token: string, contractId: string, outcome: DisputeOutcome) =>
+      request<ResolveDisputeResponse>(`/contracts/${contractId}/resolve-dispute`, {
+        method: 'POST',
+        body: { outcome },
+        token,
+      }),
+
+    getDispute: (token: string, contractId: string) =>
+      request<BackendDisputeBundleDto>(`/contracts/${contractId}/dispute`, { token }),
+
+    uploadDisputeAttachment: (
+      token: string,
+      contractId: string,
+      payload: { fileName: string; mimeType: string; dataBase64: string },
+    ) =>
+      request<BackendDisputeAttachmentDto>(`/contracts/${contractId}/dispute/attachments`, {
+        method: 'POST',
+        body: payload,
+        token,
+      }),
+
+    postDisputeMessage: (
+      token: string,
+      contractId: string,
+      payload: { body: string; attachmentIds?: string[] },
+    ) =>
+      request<BackendDisputeMessageDto>(`/contracts/${contractId}/dispute/messages`, {
+        method: 'POST',
+        body: payload,
+        token,
+      }),
+
+    /** Returns the raw attachment file as a Blob. Caller is responsible for
+     * creating an `URL.createObjectURL(blob)` and revoking it when done. */
+    fetchDisputeAttachment: (token: string, contractId: string, attachmentId: string) =>
+      requestBlob(`/contracts/${contractId}/dispute/attachments/${attachmentId}/file`, {
         token,
       }),
   },

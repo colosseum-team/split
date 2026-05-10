@@ -35,6 +35,8 @@ export interface DisputeMessage {
   side: 'customer' | 'performer'
   body: string
   createdAt: string
+  /** Files tied to this message (matches backend `messages[].attachments`). */
+  attachments?: DisputeAttachment[]
 }
 
 export interface DisputeAttachment {
