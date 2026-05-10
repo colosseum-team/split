@@ -57,14 +57,14 @@ pub mod escros_escrow {
     /// `resolve_dispute` move only the `amount` portion, leaving the PDA
     /// closeable later (post-MVP).
     pub fn fund(ctx: Context<Fund>) -> Result<()> {
-        let escrow = &mut ctx.accounts.escrow;
-        require!(
-            escrow.state == EscrowState::Initialized,
-            EscrowError::WrongState
-        );
+        let state = ctx.accounts.escrow.state;
+        let customer = ctx.accounts.escrow.customer;
+        let amount = ctx.accounts.escrow.amount;
+
+        require!(state == EscrowState::Initialized, EscrowError::WrongState);
         require_keys_eq!(
             ctx.accounts.customer.key(),
-            escrow.customer,
+            customer,
             EscrowError::Unauthorized
         );
 
@@ -75,9 +75,9 @@ pub mod escros_escrow {
                 to: ctx.accounts.escrow.to_account_info(),
             },
         );
-        system_program::transfer(cpi, escrow.amount)?;
+        system_program::transfer(cpi, amount)?;
 
-        escrow.state = EscrowState::Funded;
+        ctx.accounts.escrow.state = EscrowState::Funded;
         Ok(())
     }
 
