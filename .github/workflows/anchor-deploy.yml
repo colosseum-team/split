@@ -72,8 +72,15 @@ jobs:
       - name: Install Solana CLI (1.18.18)
         run: |
           set -euo pipefail
-          sh -c "$(curl -sSfL https://release.solana.com/v1.18.18/install)"
+          # release.solana.com is gone after Solana Foundation -> Anza
+          # rebrand. Anza hosts the same installer at release.anza.xyz.
+          # `set -o pipefail` is critical: bare `sh -c "$(curl ...)"`
+          # silently turns into `sh -c ""` if the curl fails.
+          INSTALLER=$(curl -sSfL https://release.anza.xyz/v1.18.18/install)
+          sh -c "$INSTALLER"
           echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+          export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
+          solana --version
 
       - name: Install Anchor CLI (0.30.1)
         run: |
