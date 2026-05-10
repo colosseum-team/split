@@ -144,16 +144,19 @@ jobs:
 
       - name: Anchor build
         working-directory: contracts
+        env:
+          # Force anchor + cargo to use the bundled Solana cargo for
+          # everything — otherwise the host's stable cargo writes a v4
+          # lockfile that the bundled rustc can't parse.
+          CARGO: /home/runner/.local/share/solana/install/active_release/bin/cargo
         run: |
           set -euo pipefail
-          # `anchor build` shells out to cargo build-sbf which uses the
-          # cargo bundled with the Solana CLI (1.18.18 → an older rustc).
-          # If a host-cargo step earlier left a v4 lockfile lying around,
-          # the bundled cargo bails with "lock file version 4 requires
-          # -Znext-lockfile-bump". Drop any stray lockfile so build-sbf
-          # generates one in its own format.
           rm -f Cargo.lock
-          anchor build
+          # Use the bundled Solana toolchain end-to-end. --no-idl skips
+          # the host-cargo IDL extraction (we ship a hand-written IDL at
+          # backend/idl/escros_escrow.json that the build will overwrite
+          # anyway when target/idl/*.json lands).
+          anchor build --no-idl
 
       - name: Anchor deploy (${{ github.event.inputs.cluster }})
         working-directory: contracts
