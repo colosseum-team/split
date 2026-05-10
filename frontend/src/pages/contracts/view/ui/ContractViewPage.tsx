@@ -6,9 +6,13 @@ import { useUserStore } from '@/entities/user'
 import { ContractSummary } from '@/widgets/contract'
 import { EscrowChainPanel } from '@/widgets/contract/EscrowChainPanel'
 import { SignContractModal } from '@/features/contract/sign'
-import { ConfirmCompletionModal } from '@/features/contract/complete'
+import { ConfirmCompletionModal, useApproveContract } from '@/features/contract/complete'
 import { OpenDisputeModal } from '@/features/contract/dispute'
+import { FundContractModal, useFundContract } from '@/features/contract/fund'
+import { SubmitWorkModal, useSubmitWork } from '@/features/contract/submit'
+import { useAcceptContract } from '@/features/contract/accept'
 import { DisputeWorkspace } from '@/features/disputes'
+import { api } from '@/shared/api/client'
 import { AuroraBackdrop, Button, ResultModal } from '@/shared/ui'
 
 export const ContractViewPage: FC = () => {
@@ -22,12 +26,16 @@ export const ContractViewPage: FC = () => {
   const appendDisputeMessage = useContractsStore((s) => s.appendDisputeMessage)
   const appendDisputeAttachment = useContractsStore((s) => s.appendDisputeAttachment)
   const claimPerformerWallet = useContractsStore((s) => s.claimPerformerWallet)
+  const applyBackendContract = useContractsStore((s) => s.applyBackendContract)
 
   const role = useUserStore((s) => s.role)
   const walletAddress = useUserStore((s) => s.walletAddress)
+  const authToken = useUserStore((s) => s.authToken)
 
   const [isSignOpen, setIsSignOpen] = useState(false)
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
+  const [isFundOpen, setIsFundOpen] = useState(false)
+  const [isSubmitOpen, setIsSubmitOpen] = useState(false)
   const [resultOpen, setResultOpen] = useState<null | {
     type: 'success' | 'error'
     header: string
@@ -36,6 +44,7 @@ export const ContractViewPage: FC = () => {
   const [isCompleting, setIsCompleting] = useState(false)
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false)
   const [isDisputeSubmitting, setIsDisputeSubmitting] = useState(false)
+  const [isAccepting, setIsAccepting] = useState(false)
 
   const side = useMemo<'customer' | 'performer' | null>(() => {
     if (!contract || !walletAddress) return null
@@ -51,6 +60,74 @@ export const ContractViewPage: FC = () => {
     if (contract.performer.walletAddress) return
     claimPerformerWallet(id, walletAddress)
   }, [claimPerformerWallet, contract, id, role, walletAddress])
+
+  // Refetch the contract from the backend on mount so backendStatus is
+  // current. Without this, the SPA's state is stale across browsers — e.g.
+  // the customer-side SPA wouldn't see that the performer accepted.
+  const backendId = contract?.backendId
+  const localId = contract?.id
+  useEffect(() => {
+    if (!backendId || !localId || !authToken) return
+    let cancelled = false
+    void (async () => {
+      try {
+        const dto = await api.contracts.get(authToken, backendId)
+        if (cancelled) return
+        applyBackendContract(localId, dto)
+      } catch {
+        // Best effort — silent. Inline action errors will surface on next
+        // mutation.
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [applyBackendContract, authToken, backendId, localId])
+
+  // Hooks must be called unconditionally; pass `contract ?? null` so they
+  // bail out when undefined. (Page also has an early-return below for the
+  // not-found case — but hook order has to stay stable across renders.)
+  const fundHook = useFundContract(contract ?? null, {
+    onSuccess: () => {
+      setIsFundOpen(false)
+      setResultOpen({
+        type: 'success',
+        header: 'Escrow funded',
+        text: 'Funds are locked in the escrow PDA. The performer can now accept and start work.',
+      })
+    },
+  })
+  const approveHook = useApproveContract(contract ?? null, {
+    onSuccess: () => {
+      setIsConfirmOpen(false)
+      setResultOpen({
+        type: 'success',
+        header: 'Work accepted',
+        text: 'The release transaction was signed and broadcast. Funds are on their way to the performer.',
+      })
+    },
+  })
+  const acceptHook = useAcceptContract(contract ?? null, {
+    onSuccess: () => {
+      setIsAccepting(false)
+      setResultOpen({
+        type: 'success',
+        header: 'Contract accepted',
+        text: 'You are now the assignee on this contract. Submit your work when it is ready.',
+      })
+    },
+    onError: () => setIsAccepting(false),
+  })
+  const submitHook = useSubmitWork(contract ?? null, {
+    onSuccess: () => {
+      setIsSubmitOpen(false)
+      setResultOpen({
+        type: 'success',
+        header: 'Work submitted',
+        text: 'The customer has been notified. They will either approve or open a dispute.',
+      })
+    },
+  })
 
   if (!contract) {
     return (
@@ -80,6 +157,7 @@ export const ContractViewPage: FC = () => {
   }
 
   const alreadySigned = !!(side && contract.signatures[side])
+  const hasOnChainEscrow = contract.chainMode === 'solana' && !!contract.backendId
 
   const canSign =
     !!side &&
@@ -87,10 +165,40 @@ export const ContractViewPage: FC = () => {
     contract.status !== 'COMPLETED' &&
     contract.status !== 'DECLINED' &&
     contract.status !== 'DISPUTED'
+
+  // Customer Fund — only after both signatures, only on-chain, and only
+  // until backend has recorded the fund tx.
+  const canFundEscrow =
+    side === 'customer' &&
+    contract.status === 'SIGNED' &&
+    hasOnChainEscrow &&
+    !contract.fundTxSignature
+  // Disabled-but-visible fund button for mock contracts so the customer
+  // still sees the affordance.
+  const showFundDisabledMock =
+    side === 'customer' && contract.status === 'SIGNED' && !hasOnChainEscrow
+
+  // Performer Accept — backend says funded and we have the backend record.
+  const canAcceptContract =
+    side === 'performer' && !!contract.backendId && contract.backendStatus === 'funded'
+
+  // Performer Submit — backend says in_progress.
+  const canSubmitWork =
+    side === 'performer' && !!contract.backendId && contract.backendStatus === 'in_progress'
+
+  // Customer Confirm — visible whenever the contract is SIGNED or REVIEW
+  // on the SPA side and the user is the customer. The button itself is
+  // disabled while the chain isn't ready (EscrowChainPanel shows status).
   const canConfirmCompletion =
     role === 'customer' &&
     side === 'customer' &&
     (contract.status === 'SIGNED' || contract.status === 'REVIEW')
+
+  // For chain-mode contracts the customer should approve via Phantom only
+  // after the performer has submitted (backendStatus === 'review'). Mock
+  // contracts use the legacy local markCompleted flow and don't gate.
+  const confirmIsChain = hasOnChainEscrow
+  const confirmIsReady = confirmIsChain ? contract.backendStatus === 'review' : true
 
   const canOpenDispute =
     role === 'customer' &&
@@ -123,7 +231,11 @@ export const ContractViewPage: FC = () => {
     })
   }
 
-  const handleConfirmCompletion = () => {
+  const handleConfirmCompletion = async () => {
+    if (confirmIsChain) {
+      await approveHook.run()
+      return
+    }
     setIsCompleting(true)
     try {
       markCompleted(contract.id)
@@ -142,6 +254,11 @@ export const ContractViewPage: FC = () => {
     } finally {
       setIsCompleting(false)
     }
+  }
+
+  const handleAcceptContract = async () => {
+    setIsAccepting(true)
+    await acceptHook.run()
   }
 
   const handleOpenDisputeConfirmed = () => {
@@ -257,12 +374,49 @@ export const ContractViewPage: FC = () => {
                   Sign contract
                 </Button>
               )}
+              {canFundEscrow && (
+                <Button onClick={() => setIsFundOpen(true)} size="lg" className="flex-1">
+                  Fund escrow
+                </Button>
+              )}
+              {showFundDisabledMock && (
+                <Button
+                  size="lg"
+                  className="flex-1"
+                  disabled
+                  title="Contract was created in mock mode (no on-chain escrow)"
+                >
+                  Fund escrow
+                </Button>
+              )}
+              {canAcceptContract && (
+                <Button
+                  onClick={handleAcceptContract}
+                  size="lg"
+                  variant="success"
+                  className="flex-1"
+                  disabled={isAccepting || acceptHook.isPending}
+                >
+                  {isAccepting || acceptHook.isPending ? 'Accepting…' : 'Accept contract'}
+                </Button>
+              )}
+              {canSubmitWork && (
+                <Button onClick={() => setIsSubmitOpen(true)} size="lg" className="flex-1">
+                  Submit work
+                </Button>
+              )}
               {canConfirmCompletion && (
                 <Button
                   onClick={() => setIsConfirmOpen(true)}
                   variant="success"
                   size="lg"
                   className="flex-1"
+                  disabled={!confirmIsReady}
+                  title={
+                    !confirmIsReady
+                      ? 'Waiting for the performer to submit work for review'
+                      : undefined
+                  }
                 >
                   <BoltIcon className="w-5 h-5" />
                   Confirm work completion
@@ -282,6 +436,12 @@ export const ContractViewPage: FC = () => {
             </div>
           }
         />
+
+        {acceptHook.error && (
+          <div className="text-center text-[13px] font-medium text-(--color-state-danger)">
+            {acceptHook.error}
+          </div>
+        )}
 
         <EscrowChainPanel contract={contract} />
 
@@ -308,14 +468,39 @@ export const ContractViewPage: FC = () => {
         onSigned={handleSigned}
       />
 
+      <FundContractModal
+        isOpen={isFundOpen}
+        onClose={() => setIsFundOpen(false)}
+        onConfirm={() => {
+          void fundHook.run()
+        }}
+        contract={contract}
+        isSubmitting={fundHook.isPending}
+        error={fundHook.error}
+      />
+
+      <SubmitWorkModal
+        isOpen={isSubmitOpen}
+        onClose={() => setIsSubmitOpen(false)}
+        onSubmit={(payload) => {
+          void submitHook.run(payload)
+        }}
+        isSubmitting={submitHook.isPending}
+        error={submitHook.error}
+      />
+
       <ConfirmCompletionModal
         isOpen={isConfirmOpen}
         onClose={() => setIsConfirmOpen(false)}
-        onConfirm={handleConfirmCompletion}
+        onConfirm={() => {
+          void handleConfirmCompletion()
+        }}
         amount={contract.amount}
         currency={contract.currency}
         performerName={contract.performer.fullName}
-        isSubmitting={isCompleting}
+        isSubmitting={confirmIsChain ? approveHook.isPending : isCompleting}
+        mode={confirmIsChain ? 'chain' : 'mock'}
+        error={confirmIsChain ? approveHook.error : null}
       />
 
       <OpenDisputeModal

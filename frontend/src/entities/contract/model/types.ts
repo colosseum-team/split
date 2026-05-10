@@ -98,6 +98,24 @@ export interface Contract {
   /** Last error from the chain link flow (sticky until the next attempt). */
   chainError?: string
 
+  /**
+   * Last known backend status (mirror of `BackendContractDto.status`). The
+   * fronted `status` field is computed from local signatures and is not
+   * sufficient to drive performer accept / submit buttons — use this to
+   * gate them.
+   */
+  backendStatus?:
+    | 'draft'
+    | 'open'
+    | 'funded'
+    | 'in_progress'
+    | 'review'
+    | 'completed'
+    | 'disputed'
+    | 'cancelled'
+  /** Latest submission payload from the performer (set after submit). */
+  submissionPayload?: string
+
   createdAt: string
   updatedAt: string
 }

@@ -1,4 +1,5 @@
 export { useContractsStore } from './model/store'
+export { mapBackendStatus, patchFromBackendDto } from './model/statusMap'
 export {
   CUSTOMER_INBOX_REVIEW_IDS,
   DEMO_COMPLETED_DISPUTE_CONTRACT_ID,

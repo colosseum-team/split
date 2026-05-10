@@ -11,14 +11,15 @@ const EXPLORER_CLUSTER = '?cluster=devnet'
 const truncate = (s: string, head = 8, tail = 8) =>
   s.length <= head + tail ? s : `${s.slice(0, head)}…${s.slice(-tail)}`
 
-const Pill: FC<{ children: React.ReactNode; tone: 'pending' | 'mock' | 'live' | 'error' }> = ({
-  children,
-  tone,
-}) => {
+const Pill: FC<{
+  children: React.ReactNode
+  tone: 'pending' | 'mock' | 'live' | 'completed' | 'error'
+}> = ({ children, tone }) => {
   const palette = {
     pending: 'bg-amber-100 text-amber-900 border-amber-300',
     mock: 'bg-slate-100 text-slate-700 border-slate-300',
     live: 'bg-emerald-100 text-emerald-900 border-emerald-300',
+    completed: 'bg-indigo-100 text-indigo-900 border-indigo-300',
     error: 'bg-rose-100 text-rose-900 border-rose-300',
   }
   return (
@@ -58,6 +59,7 @@ export const EscrowChainPanel: FC<EscrowChainPanelProps> = ({ contract }) => {
   const isMock = contract.chainMode === 'mock'
   const isError = !!contract.chainError && !contract.chainMode
   const isPending = !contract.chainMode && !contract.chainError
+  const isCompleted = isLive && !!contract.releaseTxSignature
 
   const explorerAccount = (addr: string) =>
     isLive ? `${EXPLORER_BASE}/address/${addr}${EXPLORER_CLUSTER}` : null
@@ -73,7 +75,8 @@ export const EscrowChainPanel: FC<EscrowChainPanelProps> = ({ contract }) => {
         <h3 className="text-[15px] font-bold text-(--color-text-primary)">On-chain escrow</h3>
         {isPending && <Pill tone="pending">Linking…</Pill>}
         {isMock && <Pill tone="mock">Mock chain</Pill>}
-        {isLive && <Pill tone="live">Solana devnet</Pill>}
+        {isLive && !isCompleted && <Pill tone="live">Solana devnet</Pill>}
+        {isCompleted && <Pill tone="completed">Completed</Pill>}
         {isError && <Pill tone="error">Error</Pill>}
       </div>
 
@@ -136,10 +139,55 @@ export const EscrowChainPanel: FC<EscrowChainPanelProps> = ({ contract }) => {
             />
           )}
           {contract.fundTxSignature && (
-            <Row label="Fund tx" value={truncate(contract.fundTxSignature, 12, 12)} />
+            <Row
+              label="Fund tx"
+              value={
+                explorerTx(contract.fundTxSignature) ? (
+                  <a
+                    href={explorerTx(contract.fundTxSignature)!}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-(--color-brand) hover:underline"
+                  >
+                    {truncate(contract.fundTxSignature, 12, 12)}
+                  </a>
+                ) : (
+                  truncate(contract.fundTxSignature, 12, 12)
+                )
+              }
+            />
           )}
           {contract.releaseTxSignature && (
-            <Row label="Release tx" value={truncate(contract.releaseTxSignature, 12, 12)} />
+            <Row
+              label="Release tx"
+              value={
+                explorerTx(contract.releaseTxSignature) ? (
+                  <a
+                    href={explorerTx(contract.releaseTxSignature)!}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-(--color-brand) hover:underline"
+                  >
+                    {truncate(contract.releaseTxSignature, 12, 12)}
+                  </a>
+                ) : (
+                  truncate(contract.releaseTxSignature, 12, 12)
+                )
+              }
+            />
+          )}
+          {contract.submissionPayload && (
+            <Row
+              label="Submitted work"
+              mono={false}
+              value={
+                <span className="text-(--color-text-primary) break-words">
+                  {contract.submissionPayload.length > 160
+                    ? `${contract.submissionPayload.slice(0, 160)}…`
+                    : contract.submissionPayload}
+                </span>
+              }
+            />
           )}
           {contract.textHash && (
             <Row label="Text hash (sha256)" value={truncate(contract.textHash, 10, 10)} />
@@ -149,11 +197,10 @@ export const EscrowChainPanel: FC<EscrowChainPanelProps> = ({ contract }) => {
 
       {isMock && (
         <p className="text-[12px] text-(--color-text-muted)">
-          Backend is running with{' '}
-          <code className="font-mono text-[11px]">MOCK_CHAIN=true</code> — the addresses above are
-          deterministic stubs, not real Solana accounts. Switch the backend to{' '}
-          <code className="font-mono text-[11px]">MOCK_CHAIN=false</code> after the Anchor program
-          is deployed to devnet for live txs.
+          Backend is running with <code className="font-mono text-[11px]">MOCK_CHAIN=true</code> —
+          the addresses above are deterministic stubs, not real Solana accounts. Switch the backend
+          to <code className="font-mono text-[11px]">MOCK_CHAIN=false</code> after the Anchor
+          program is deployed to devnet for live txs.
         </p>
       )}
     </section>
