@@ -73,14 +73,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      - name: Install Solana CLI (1.18.18)
+      - name: Install Solana CLI (Agave 2.1.0)
         run: |
           set -euo pipefail
-          # release.solana.com is gone after Solana Foundation -> Anza
-          # rebrand. Anza hosts the same installer at release.anza.xyz.
-          # `set -o pipefail` is critical: bare `sh -c "$(curl ...)"`
-          # silently turns into `sh -c ""` if the curl fails.
-          INSTALLER=$(curl -sSfL https://release.anza.xyz/v1.18.18/install)
+          # Bumped from 1.18.18 to 2.1.0: 1.18's cargo-build-sbf shells
+          # out to host PATH cargo, which writes v4 lockfiles that the
+          # bundled cargo can't read back. Agave 2.1.0 bundles a newer
+          # cargo + handles v4 natively. Anchor 0.30.1 program ABI is
+          # back-compatible with 2.x.
+          INSTALLER=$(curl -sSfL https://release.anza.xyz/v2.1.0/install)
           sh -c "$INSTALLER"
           echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
           export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
