@@ -22,6 +22,8 @@ import type {
   CreateContractInput,
   DisputeAttachment,
 } from './types'
+import type { BackendContractDto } from '@/shared/api/client'
+import { patchFromBackendDto } from './statusMap'
 
 const computeContractStatus = (contract: Contract): ContractStatus => {
   const hasCustomer = !!contract.signatures.customer
@@ -58,6 +60,14 @@ interface ContractsState {
       >
     >,
   ) => void
+  /**
+   * Patch chain-/backend-tracked fields (`backendStatus`, status,
+   * fund/release tx signatures, submissionPayload, …) from the latest
+   * backend DTO. Local signatures and dispute messages are NOT touched.
+   * Use after every successful mutation (fund / accept / submit / approve)
+   * or on-mount refetch.
+   */
+  applyBackendContract: (localId: string, dto: BackendContractDto) => void
   getById: (id: string) => Contract | undefined
   signByWallet: (id: string, signature: ContractSignature, side: 'customer' | 'performer') => void
   /**
@@ -149,6 +159,16 @@ export const useContractsStore = create<ContractsState>()(
             contracts: state.contracts.map((c) =>
               c.id === id ? { ...c, ...chain, updatedAt: new Date().toISOString() } : c,
             ),
+          }))
+        },
+
+        applyBackendContract: (localId, dto) => {
+          set((state) => ({
+            contracts: state.contracts.map((c) => {
+              if (c.id !== localId) return c
+              const patch = patchFromBackendDto(dto, c)
+              return { ...c, ...patch, updatedAt: new Date().toISOString() }
+            }),
           }))
         },
 
@@ -333,7 +353,7 @@ export const useContractsStore = create<ContractsState>()(
       }),
       {
         name: 'split-contracts-store',
-        version: 2,
+        version: 3,
       },
     ),
     {

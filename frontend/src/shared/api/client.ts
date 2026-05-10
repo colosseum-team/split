@@ -130,6 +130,47 @@ export interface CreateContractResponse {
   updatedAt: string
 }
 
+// Backend serialization of a Contract row (see backend/src/routes/contracts.ts
+// `serialize`). All BigInt/Date fields are stringified. Used for refetches
+// after mutating actions (fund / accept / submit / approve) so the SPA can
+// re-derive its local view from the source of truth.
+export type BackendContractStatus =
+  | 'draft'
+  | 'open'
+  | 'funded'
+  | 'in_progress'
+  | 'review'
+  | 'completed'
+  | 'disputed'
+  | 'cancelled'
+
+export interface BackendContractDto {
+  id: string
+  title: string
+  description: string
+  amount: string
+  currency: string
+  deadline: string | null
+  customerAddress: string
+  assigneeAddress: string | null
+  status: BackendContractStatus
+  contractHash: string | null
+  onchainAddress: string | null
+  fundTxSignature: string | null
+  approveTxSignature: string | null
+  resolveTxSignature: string | null
+  submissionPayload: string | null
+  submissionAt: string | null
+  disputeOpenedBy: 'customer' | 'user' | null
+  disputeOpenedAt: string | null
+  disputeDueAt: string | null
+  disputeResolvedAt: string | null
+  disputeOutcome: 'PERFORMER_WON' | 'CLIENT_WON' | 'INCONCLUSIVE' | null
+  disputeResolutionDays: number
+  createdAt: string
+  updatedAt: string
+}
+
 // ---------- endpoints ----------
 
 export const api = {
@@ -168,6 +209,9 @@ export const api = {
     create: (token: string, body: CreateContractRequest) =>
       request<CreateContractResponse>('/contracts', { method: 'POST', body, token }),
 
+    get: (token: string, contractId: string) =>
+      request<BackendContractDto>(`/contracts/${contractId}`, { token }),
+
     buildFundTx: (token: string, contractId: string) =>
       request<{ tx: string; escrowAddress: string }>(`/contracts/${contractId}/fund-tx`, {
         method: 'POST',
@@ -176,7 +220,7 @@ export const api = {
       }),
 
     recordFund: (token: string, contractId: string, txSignature: string) =>
-      request<unknown>(`/contracts/${contractId}/fund`, {
+      request<BackendContractDto>(`/contracts/${contractId}/fund`, {
         method: 'POST',
         body: { txSignature },
         token,
@@ -190,9 +234,23 @@ export const api = {
       }),
 
     recordApprove: (token: string, contractId: string, txSignature: string) =>
-      request<unknown>(`/contracts/${contractId}/approve`, {
+      request<BackendContractDto>(`/contracts/${contractId}/approve`, {
         method: 'POST',
         body: { txSignature },
+        token,
+      }),
+
+    accept: (token: string, contractId: string) =>
+      request<BackendContractDto>(`/contracts/${contractId}/accept`, {
+        method: 'POST',
+        body: {},
+        token,
+      }),
+
+    submitWork: (token: string, contractId: string, payload: string) =>
+      request<BackendContractDto>(`/contracts/${contractId}/submit`, {
+        method: 'POST',
+        body: { payload },
         token,
       }),
   },
