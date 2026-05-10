@@ -83,28 +83,33 @@ pub mod escros_escrow {
 
     /// Customer signs to release escrow funds to the performer.
     pub fn release(ctx: Context<Settle>) -> Result<()> {
-        let escrow = &mut ctx.accounts.escrow;
-        require!(
-            escrow.state == EscrowState::Funded,
-            EscrowError::WrongState
-        );
+        // Snapshot the fields we need (state, customer, performer, amount)
+        // BEFORE taking &mut on the account — Rust's borrow checker forbids
+        // simultaneous &mut and &T borrows of the same Account, and
+        // move_lamports needs a fresh AccountInfo of the escrow.
+        let state = ctx.accounts.escrow.state;
+        let customer = ctx.accounts.escrow.customer;
+        let performer = ctx.accounts.escrow.performer;
+        let amount = ctx.accounts.escrow.amount;
+
+        require!(state == EscrowState::Funded, EscrowError::WrongState);
         require_keys_eq!(
             ctx.accounts.signer.key(),
-            escrow.customer,
+            customer,
             EscrowError::Unauthorized
         );
         require_keys_eq!(
             ctx.accounts.recipient.key(),
-            escrow.performer,
+            performer,
             EscrowError::WrongRecipient
         );
 
         move_lamports(
             &ctx.accounts.escrow.to_account_info(),
             &ctx.accounts.recipient.to_account_info(),
-            escrow.amount,
+            amount,
         )?;
-        escrow.state = EscrowState::Completed;
+        ctx.accounts.escrow.state = EscrowState::Completed;
         Ok(())
     }
 
@@ -116,20 +121,25 @@ pub mod escros_escrow {
         ctx: Context<ResolveDispute>,
         outcome: DisputeOutcome,
     ) -> Result<()> {
-        let escrow = &mut ctx.accounts.escrow;
+        let state = ctx.accounts.escrow.state;
+        let arbiter = ctx.accounts.escrow.arbiter;
+        let performer = ctx.accounts.escrow.performer;
+        let customer = ctx.accounts.escrow.customer;
+        let amount = ctx.accounts.escrow.amount;
+
         require!(
-            matches!(escrow.state, EscrowState::Funded | EscrowState::Disputed),
+            matches!(state, EscrowState::Funded | EscrowState::Disputed),
             EscrowError::WrongState
         );
         require_keys_eq!(
             ctx.accounts.arbiter.key(),
-            escrow.arbiter,
+            arbiter,
             EscrowError::Unauthorized
         );
 
         let target_key = match outcome {
-            DisputeOutcome::PerformerWon => escrow.performer,
-            DisputeOutcome::CustomerWon => escrow.customer,
+            DisputeOutcome::PerformerWon => performer,
+            DisputeOutcome::CustomerWon => customer,
         };
         require_keys_eq!(
             ctx.accounts.recipient.key(),
@@ -140,10 +150,10 @@ pub mod escros_escrow {
         move_lamports(
             &ctx.accounts.escrow.to_account_info(),
             &ctx.accounts.recipient.to_account_info(),
-            escrow.amount,
+            amount,
         )?;
-        escrow.state = EscrowState::Resolved;
-        escrow.dispute_outcome = Some(outcome);
+        ctx.accounts.escrow.state = EscrowState::Resolved;
+        ctx.accounts.escrow.dispute_outcome = Some(outcome);
         Ok(())
     }
 }
